@@ -1,0 +1,2567 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Combined School & Dashboard Report</title>
+    <!-- Highcharts library -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <!-- Optional: Highcharts exporting module -->
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <style>
+      /* ====== Shared / Unified Styles ====== */
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      /* Fixed Top Navigation Menu */
+      .menu {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        background-color: #2c3e50;
+        padding: 15px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .menu a {
+        color: #ecf0f1;
+        text-decoration: none;
+        margin: 10px;
+        padding: 10px 20px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      .menu a:hover {
+        background-color: #3498db;
+        border-color: #3498db;
+      }
+      .menu a.active-menu {
+        background-color: #1abc9c;
+      }
+      /* Each page (content) uses a normalized structure */
+      .content {
+        margin: 20px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 15px;
+        display: none;
+      }
+      .content.active {
+        display: block;
+      }
+      .page-header {
+        margin-bottom: 15px;
+      }
+      .page-header h1 {
+        margin: 0;
+        color: #2c3e50;
+      }
+      /* Collapsible Filter Container */
+      .filter-container {
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: #f9f9f9;
+      }
+      /* Smaller toggle filter button (default hidden) */
+      .filter-toggle-btn {
+        background-color: #3498db;
+        color: #fff;
+        border: none;
+        padding: 6px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: background-color 0.3s;
+        width: 100%;
+        text-align: left;
+      }
+      .filter-section {
+        padding: 10px;
+        display: none; /* hidden by default */
+      }
+      .filter-section .filter-controls,
+      .filter-section .dashboard-filters,
+      .filter-section .submenu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      select {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 14px;
+        min-width: 180px;
+      }
+      select[multiple] {
+        min-height: 100px;
+      }
+      .selected-filters,
+      .selected-types {
+        font-size: 0.9em;
+        color: #666;
+      }
+      input[type="text"],
+      input[type="range"] {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+      input[type="text"] {
+        width: 250px;
+      }
+      /* Table section */
+      .table-section {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      th, td {
+        padding: 12px 15px;
+        text-align: center;
+        border: 1px solid #ddd;
+      }
+      th {
+        background-color: #3498db;
+        color: #fff;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      th.registration-header {
+        background-color: #e67e22;
+      }
+      td {
+        background-color: #f9f9f9;
+      }
+      /* Banded rows */
+      table tbody tr:nth-child(odd) {
+        background-color: #f2f2f2;
+      }
+      .positive {
+        background-color: #dff0d8;
+      }
+      .negative {
+        background-color: #f2dede;
+      }
+      .positive:hover, .negative:hover {
+        background-color: #f9f9f9;
+      }
+      /* Modern Slider Styling */
+      .slider-wrapper {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 20px;
+        background: #f9f9f9;
+        max-width: 500px;
+        margin: 20px auto;
+        text-align: center;
+      }
+      .slider-container {
+        margin-top: 10px;
+      }
+      .slider-container label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+      }
+      input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 8px;
+        background: #ddd;
+        border-radius: 4px;
+        outline: none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #3498db;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #3498db;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+      /* Plus/Minus buttons for slider – increased size */
+      .slider-adjust {
+        font-size: 24px;
+        font-weight: bold;
+        padding: 12px 16px;
+        margin: 0 5px;
+        background-color: #1abc9c;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .slider-adjust:hover {
+        background-color: #16a085;
+      }
+      /* CHARTS: Schools page styles */
+      #charts-schools .controls {
+        margin-bottom: 15px;
+      }
+      #charts-schools .controls label {
+        margin-right: 10px;
+      }
+      #charts-schools .controls input[type="text"] {
+        width: 150px;
+      }
+      #charts-schools .chart-container {
+        margin-bottom: 30px;
+      }
+      /* Dual List Box for Charts: Schools */
+      #charts-schools .dual-list {
+        display: flex;
+        justify-content: space-between;
+      }
+      #charts-schools select {
+        width: 45%;
+        height: 150px;
+      }
+      #charts-schools .dual-buttons {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      #charts-schools .dual-buttons button.add-btn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        margin: 5px 0;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      #charts-schools .dual-buttons button.remove-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        margin: 5px 0;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      /* UPDATE button style (for charts pages) */
+      .controls button {
+        font-size: 16px;
+        padding: 12px 24px;
+        background-color: #1abc9c;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .controls button:hover {
+        background-color: #16a085;
+      }
+      /* TOTAL DATA Page tweaks */
+      #total h2 {
+        background-color: #f9f9f9;
+        border-left: 5px solid #3498db;
+        padding: 10px;
+      }
+      /* Change table header color for Exam Totals section */
+      #total-exam table th {
+        background-color: #d9534f !important;
+        color: #fff !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Navigation Menu -->
+    <div class="menu">
+      <a href="#upload" onclick="showContent('upload', this)">Upload</a>
+      <a href="#years-exam" onclick="showContent('years-exam', this)">YEARS: Exam</a>
+      <a href="#years-registration" onclick="showContent('years-registration', this)">YEARS: Registration</a>
+      <a href="#months-exam" onclick="showContent('months-exam', this)">MONTHS: Exam</a>
+      <a href="#months-registration" onclick="showContent('months-registration', this)">MONTHS: Registration</a>
+      <a href="#ytd-exam" onclick="showContent('ytd-exam', this)">YTD: Exam</a>
+      <a href="#ytd-registration" onclick="showContent('ytd-registration', this)">YTD: Registration</a>
+      <a href="#charts-schools" onclick="showContent('charts-schools', this)">CHARTS: Schools</a>
+      <a href="#charts-exams" onclick="showContent('charts-exams', this)">CHARTS: Exams</a>
+      <a href="#total" onclick="showContent('total', this)">TOTAL DATA</a>
+    </div>
+
+    <!-- ================= PAGE STRUCTURE ================= -->
+
+    <!-- Upload Page -->
+    <div id="upload" class="content active">
+      <div class="page-header"><h1>Upload JSON File</h1></div>
+      <div class="table-section" style="text-align: center;">
+        <input type="file" id="fileInput" accept=".json" />
+      </div>
+    </div>
+
+    <!-- YEARS: Exam Page -->
+    <div id="years-exam" class="content">
+      <div class="page-header"><h1>YEARS: Exam</h1></div>
+      <div class="filter-container">
+        <button class="filter-toggle-btn" onclick="toggleFilters(this)">Show Filters</button>
+        <div class="filter-section">
+          <div class="filter-controls">
+            <select id="examTypeFilter" multiple>
+              <option value="ALL" selected>All Exam Types</option>
+            </select>
+            <select id="examProviderFilter" multiple>
+              <option value="ALL" selected>All Providers</option>
+            </select>
+            <select id="examPBCBFilter" multiple>
+              <option value="ALL" selected>All PB/CB</option>
+            </select>
+            <button onclick="applyYearFilter('exam')">Confirm Filters</button>
+          </div>
+          <div>
+            <input type="text" id="searchInput" placeholder="Search by School..." oninput="filterTable('exam')">
+          </div>
+          <div id="examActiveFilters" class="selected-filters"></div>
+        </div>
+      </div>
+      <div class="table-section" id="examTableContainer"></div>
+    </div>
+
+    <!-- YEARS: Registration Page -->
+    <div id="years-registration" class="content">
+      <div class="page-header"><h1>YEARS: Registration</h1></div>
+      <div class="filter-container">
+        <button class="filter-toggle-btn" onclick="toggleFilters(this)">Show Filters</button>
+        <div class="filter-section">
+          <div class="filter-controls">
+            <select id="registrationTypeFilter" multiple>
+              <option value="ALL" selected>All Exam Types</option>
+            </select>
+            <select id="registrationProviderFilter" multiple>
+              <option value="ALL" selected>All Providers</option>
+            </select>
+            <select id="registrationPBCBFilter" multiple>
+              <option value="ALL" selected>All PB/CB</option>
+            </select>
+            <button onclick="applyYearFilter('registration')">Confirm Filters</button>
+          </div>
+          <div>
+            <input type="text" id="searchInput2" placeholder="Search by School..." oninput="filterTable('registration')">
+          </div>
+          <div id="registrationActiveFilters" class="selected-filters"></div>
+        </div>
+      </div>
+      <div class="table-section" id="registrationTableContainer"></div>
+    </div>
+
+    <!-- MONTHS: Exam Page -->
+    <div id="months-exam" class="content">
+      <div class="page-header"><h1>MONTHS: Exam</h1></div>
+      <div class="filter-container">
+        <button class="filter-toggle-btn" onclick="toggleFilters(this)">Show Filters</button>
+        <div class="filter-section">
+          <div class="submenu">
+            <label for="exam-year-select">Select Year:</label>
+            <select id="exam-year-select" onchange="showYearData('exam', this.value, 'exam-content')"></select>
+          </div>
+          <div class="dashboard-filters">
+            <select id="examTypeFilter_dashboard_ex" multiple></select>
+            <select id="examProviderFilter_dashboard_ex" multiple></select>
+            <select id="examPBCBFilter_dashboard_ex" multiple></select>
+            <button onclick="applyDashboardFilter('exam','exam-content')">Confirm Filters</button>
+          </div>
+          <div>
+            <input type="text" id="exam-search" placeholder="Search Schools..." onkeyup="filterTableData('exam','exam-content')">
+          </div>
+          <div id="examDashboard_exActiveFilters" class="selected-filters"></div>
+        </div>
+      </div>
+      <div class="table-section" id="exam-content"></div>
+    </div>
+
+    <!-- MONTHS: Registration Page -->
+    <div id="months-registration" class="content">
+      <div class="page-header"><h1>MONTHS: Registration</h1></div>
+      <div class="filter-container">
+        <button class="filter-toggle-btn" onclick="toggleFilters(this)">Show Filters</button>
+        <div class="filter-section">
+          <div class="submenu">
+            <label for="registration-year-select">Select Year:</label>
+            <select id="registration-year-select" onchange="showYearData('registration', this.value, 'registration-content')"></select>
+          </div>
+          <div class="dashboard-filters">
+            <select id="registrationTypeFilter_dashboard_reg" multiple></select>
+            <select id="registrationProviderFilter_dashboard_reg" multiple></select>
+            <select id="registrationPBCBFilter_dashboard_reg" multiple></select>
+            <button onclick="applyDashboardFilter('registration','registration-content')">Confirm Filters</button>
+          </div>
+          <div>
+            <input type="text" id="registration-search" placeholder="Search Schools..." onkeyup="filterTableData('registration','registration-content')">
+          </div>
+          <div id="registrationDashboard_regActiveFilters" class="selected-filters"></div>
+        </div>
+      </div>
+      <div class="table-section" id="registration-content"></div>
+    </div>
+
+    <!-- YTD: Exam Page -->
+    <div id="ytd-exam" class="content">
+      <div class="page-header"><h1>YTD: Exam</h1></div>
+      <div class="filter-container">
+        <button class="filter-toggle-btn" onclick="toggleFilters(this)">Show Filters</button>
+        <div class="filter-section">
+          <div class="dashboard-filters">
+            <select id="examTypeFilter_dashboard_ytd_ex" multiple></select>
+            <select id="examProviderFilter_dashboard_ytd_ex" multiple></select>
+            <select id="examPBCBFilter_dashboard_ytd_ex" multiple></select>
+            <button onclick="applyDashboardFilter('exam','ytd-exam')">Confirm Filters</button>
+          </div>
+          <div>
+            <input type="text" id="exam-ytd-search" placeholder="Search Schools..." onkeyup="filterTableDashboardYTD('ytd-exam')">
+          </div>
+          <div id="examDashboard_ytd_exActiveFilters" class="selected-filters"></div>
+        </div>
+      </div>
+      <div class="slider-wrapper">
+        <div class="slider-container">
+          <label for="exam-month-slider">Select Month:</label>
+          <input type="range" id="exam-month-slider" min="0" max="11" step="1" onchange="updateExamComparisonTable()">
+          <div class="slider-buttons">
+            <button class="slider-adjust" onclick="decrementMonth('exam')">-</button>
+            <button class="slider-adjust" onclick="incrementMonth('exam')">+</button>
+          </div>
+          <div class="month-label" id="exam-current-month">Selected Month: <strong>January</strong></div>
+        </div>
+      </div>
+      <!-- Global Pin All/Unpin All button -->
+      <div style="text-align: center; margin-bottom: 10px;">
+        <button id="togglePinExamButton" onclick="togglePinAll('exam')" style="background-color: #ccffd9; border: 2px solid black; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Pin All</button>
+      </div>
+      <div class="table-section">
+        <table id="exam-comparison-table">
+          <thead>
+            <!-- Header row will be rebuilt dynamically -->
+          </thead>
+          <tbody>
+            <!-- Rows generated by updateExamComparisonTable() -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- YTD: Registration Page -->
+    <div id="ytd-registration" class="content">
+      <div class="page-header"><h1>YTD: Registration</h1></div>
+      <div class="filter-container">
+        <button class="filter-toggle-btn" onclick="toggleFilters(this)">Show Filters</button>
+        <div class="filter-section">
+          <div class="dashboard-filters">
+            <select id="registrationTypeFilter_dashboard_ytd_reg" multiple></select>
+            <select id="registrationProviderFilter_dashboard_ytd_reg" multiple></select>
+            <select id="registrationPBCBFilter_dashboard_ytd_reg" multiple></select>
+            <button onclick="applyDashboardFilter('registration','ytd-registration')">Confirm Filters</button>
+          </div>
+          <div>
+            <input type="text" id="registration-ytd-search" placeholder="Search Schools..." onkeyup="filterTableDashboardYTD('ytd-registration')">
+          </div>
+          <div id="registrationDashboard_ytd_regActiveFilters" class="selected-filters"></div>
+        </div>
+      </div>
+      <div class="slider-wrapper">
+        <div class="slider-container">
+          <label for="registration-month-slider">Select Month:</label>
+          <input type="range" id="registration-month-slider" min="0" max="11" step="1" onchange="updateRegistrationComparisonTable()">
+          <div class="slider-buttons">
+            <button class="slider-adjust" onclick="decrementMonth('registration')">-</button>
+            <button class="slider-adjust" onclick="incrementMonth('registration')">+</button>
+          </div>
+          <div class="month-label" id="registration-current-month">Selected Month: <strong>January</strong></div>
+        </div>
+      </div>
+      <!-- Global Pin All/Unpin All button -->
+      <div style="text-align: center; margin-bottom: 10px;">
+        <button id="togglePinRegistrationButton" onclick="togglePinAll('registration')" style="background-color: #ccffd9; border: 2px solid black; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Pin All</button>
+      </div>
+      <div class="table-section">
+        <table id="registration-comparison-table">
+          <thead>
+            <!-- Header row will be rebuilt dynamically -->
+          </thead>
+          <tbody>
+            <!-- Rows generated by updateRegistrationComparisonTable() -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CHARTS: Schools Page -->
+    <div id="charts-schools" class="content">
+      <div class="page-header"><h1>CHARTS: Schools</h1></div>
+      <!-- Chart Filters -->
+      <div class="filter-container">
+        <button class="filter-toggle-btn" onclick="toggleFilters(this)">Show Filters</button>
+        <div class="filter-section">
+          <div class="filter-controls" style="justify-content: space-around; flex-wrap: wrap;">
+            <select id="chartExamTypeFilter" multiple>
+              <option value="ALL" selected>All Exam Types</option>
+            </select>
+            <select id="chartProviderFilter" multiple>
+              <option value="ALL" selected>All Providers</option>
+            </select>
+            <select id="chartPBCBFilter" multiple>
+              <option value="ALL" selected>All PB/CB</option>
+            </select>
+            <button onclick="applyChartFilter()">Apply Filters</button>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <label for="chart-metric">Metric:</label>
+        <input type="radio" name="chartMetric" id="metric-exam" value="Exam" checked>
+        <label for="metric-exam">Exam</label>
+        <input type="radio" name="chartMetric" id="metric-registration" value="Registration">
+        <label for="metric-registration">Registration</label>
+      </div>
+      <!-- Dual List Box for School Selection -->
+      <div class="controls dual-list">
+        <div>
+          <label for="available-schools">Available Schools:</label>
+          <input type="text" id="chart-available-search" placeholder="Search available..." onkeyup="filterAvailableSchools()" />
+          <select id="available-schools" multiple></select>
+        </div>
+        <div class="dual-buttons">
+          <button class="add-btn" onclick="addSchool()">Add &gt;&gt;</button>
+          <button class="remove-btn" onclick="removeSchool()">&lt;&lt; Remove</button>
+        </div>
+        <div>
+          <label for="selected-schools">Selected Schools:</label>
+          <select id="selected-schools" multiple></select>
+        </div>
+      </div>
+      <div class="controls">
+        <button onclick="updateCharts()">Update Charts</button>
+      </div>
+      <!-- Highcharts containers -->
+      <div class="chart-container">
+        <div id="chartYearlyContainer" style="height:300px; width:100%;"></div>
+      </div>
+      <div class="chart-container">
+        <div id="chartMonthlyContainer" style="height:300px; width:100%;"></div>
+      </div>
+      <div class="chart-container">
+        <div id="chartCumulativeContainer" style="height:300px; width:100%;"></div>
+      </div>
+    </div>
+
+    <!-- CHARTS: Exams Page -->
+    <div id="charts-exams" class="content">
+      <div class="page-header"><h1>CHARTS: Exams</h1></div>
+      <div class="controls">
+        <label for="chartMetricExams">Metric:</label>
+        <input type="radio" name="chartMetricExams" id="metric-exam-exams" value="Exam" checked>
+        <label for="metric-exam-exams">Exam</label>
+        <input type="radio" name="chartMetricExams" id="metric-registration-exams" value="Registration">
+        <label for="metric-registration-exams">Registration</label>
+      </div>
+      <!-- Filter container for grouping and filters -->
+      <div class="filter-container">
+        <button class="filter-toggle-btn" onclick="toggleFilters(this)">Show Filters</button>
+        <div class="filter-section">
+          <div class="filter-controls" style="justify-content: space-around; flex-wrap: wrap;">
+            <label for="groupBySelect">Group By:</label>
+            <select id="groupBySelect">
+              <option value="EXAM TYPE">Exam Type</option>
+              <option value="PROVIDER">Provider</option>
+              <option value="PB/CB">PB/CB</option>
+            </select>
+            <select id="chartExamTypeFilter_exams" multiple>
+              <!-- Options populated without default selection -->
+            </select>
+            <select id="chartProviderFilter_exams" multiple>
+              <!-- Options populated without default selection -->
+            </select>
+            <select id="chartPBCBFilter_exams" multiple>
+              <!-- Options populated without default selection -->
+            </select>
+            <button onclick="applyChartExamsFilter()">Apply Filters</button>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <button onclick="updateChartsExams()">Update Charts</button>
+      </div>
+      <!-- Highcharts containers -->
+      <div class="chart-container">
+        <div id="chartExamsYearlyContainer" style="height:300px; width:100%;"></div>
+      </div>
+      <div class="chart-container">
+        <div id="chartExamsMonthlyContainer" style="height:300px; width:100%;"></div>
+      </div>
+      <div class="chart-container">
+        <div id="chartExamsCumulativeContainer" style="height:300px; width:100%;"></div>
+      </div>
+    </div>
+
+    <!-- TOTAL DATA Page -->
+    <div id="total" class="content">
+      <div class="page-header"><h1>TOTAL DATA</h1></div>
+      <!-- New Combined Totals Table and Chart -->
+      <div id="combined-total-container">
+        <h2>Combined Yearly Totals</h2>
+        <div id="combined-total-table"></div>
+        <div id="combinedTotalChart" style="height:300px; width:100%;"></div>
+      </div>
+      <div id="total-exam">
+        <h2>Exam Totals</h2>
+        <div id="total-exam-tables"></div>
+      </div>
+      <div id="total-registration">
+        <h2>Registration Totals</h2>
+        <div id="total-registration-tables"></div>
+      </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT ================= -->
+    <script>
+      /***** GLOBAL VARIABLES *****/
+      let globalData = null; // for all pages
+      let jsonData = [];     // for dashboards and charts
+      let registrationData = {};
+      let examData = {};
+      // Global arrays to hold pinned schools in YTD tables
+      let pinnedExamSchools = [];
+      let pinnedRegistrationSchools = [];
+      const monthOrder = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      let sortDirections = {}; // for table sorting
+
+      /***** FILE UPLOAD & INITIALIZATION *****/
+      document.getElementById("fileInput").addEventListener("change", combinedFileUpload);
+      function combinedFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) {
+          alert("Please select a valid file.");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const json = JSON.parse(e.target.result);
+            globalData = json;
+            jsonData = json;
+            populateYearFilters(globalData);
+            generateExamTable(globalData);
+            generateRegistrationTable(globalData);
+            processData();
+            populateDashboardFilters();
+            populateYearExtraFilters(globalData);
+            populateChartSchoolOptions();
+            buildTotalDataTables();
+            // Build the new combined totals table and chart
+            buildCombinedTotalTable();
+            showContent("years-exam", document.querySelector('a[href="#years-exam"]'));
+          } catch (error) {
+            alert("Error parsing JSON data. Please check the file format.");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      /***** NAVIGATION *****/
+      function showContent(id, linkElement) {
+        document.querySelectorAll(".content").forEach(section => section.classList.remove("active"));
+        const newSection = document.getElementById(id);
+        newSection.classList.add("active");
+        // Force scroll to top of the page
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+        newSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.querySelectorAll(".menu a").forEach(link => link.classList.remove("active-menu"));
+        if (linkElement) linkElement.classList.add("active-menu");
+        if (id === "ytd-exam") updateExamComparisonTable();
+        else if (id === "ytd-registration") updateRegistrationComparisonTable();
+        else if (id === "charts-exams") updateChartsExams();
+      }
+
+      /***** COLLAPSIBLE FILTERS *****/
+      function toggleFilters(button) {
+        const container = button.parentElement;
+        const filterSection = container.querySelector(".filter-section");
+        if (filterSection.style.display === "none") {
+          filterSection.style.display = "block";
+          button.textContent = "Hide Filters";
+        } else {
+          filterSection.style.display = "none";
+          button.textContent = "Show Filters";
+        }
+      }
+
+      /***** YEARS PAGE FUNCTIONS *****/
+      function populateYearFilters(data) {
+        const examTypes = [...new Set(data.map(item => item["EXAM TYPE"]))].sort();
+        const examTypeFilter = document.getElementById("examTypeFilter");
+        const registrationTypeFilter = document.getElementById("registrationTypeFilter");
+        while (examTypeFilter.options.length > 1) examTypeFilter.remove(1);
+        while (registrationTypeFilter.options.length > 1) registrationTypeFilter.remove(1);
+        examTypes.forEach(type => {
+          examTypeFilter.add(new Option(type, type));
+          registrationTypeFilter.add(new Option(type, type));
+        });
+      }
+      function populateYearExtraFilters(data) {
+        const providers = [...new Set(data.map(item => item["PROVIDER"]))].sort();
+        const pbcb = [...new Set(data.map(item => item["PB/CB"]))].sort();
+        const examProviderFilter = document.getElementById("examProviderFilter");
+        const registrationProviderFilter = document.getElementById("registrationProviderFilter");
+        const examPBCBFilter = document.getElementById("examPBCBFilter");
+        const registrationPBCBFilter = document.getElementById("registrationPBCBFilter");
+        while (examProviderFilter.options.length > 1) examProviderFilter.remove(1);
+        while (registrationProviderFilter.options.length > 1) registrationProviderFilter.remove(1);
+        while (examPBCBFilter.options.length > 1) examPBCBFilter.remove(1);
+        while (registrationPBCBFilter.options.length > 1) registrationPBCBFilter.remove(1);
+        providers.forEach(prov => {
+          examProviderFilter.add(new Option(prov, prov));
+          registrationProviderFilter.add(new Option(prov, prov));
+        });
+        pbcb.forEach(val => {
+          examPBCBFilter.add(new Option(val, val));
+          registrationPBCBFilter.add(new Option(val, val));
+        });
+      }
+      function applyYearFilter(type) {
+        const typeFilter = document.getElementById(type === "exam" ? "examTypeFilter" : "registrationTypeFilter");
+        const providerFilter = document.getElementById(type === "exam" ? "examProviderFilter" : "registrationProviderFilter");
+        const pbcbFilter = document.getElementById(type === "exam" ? "examPBCBFilter" : "registrationPBCBFilter");
+        const selectedTypes = Array.from(typeFilter.selectedOptions).map(opt => opt.value);
+        const selectedProviders = Array.from(providerFilter.selectedOptions).map(opt => opt.value);
+        const selectedPBCB = Array.from(pbcbFilter.selectedOptions).map(opt => opt.value);
+        let filteredData = globalData.filter(item => {
+          const examTypeMatch = selectedTypes.length === 0 || selectedTypes.includes("ALL") || selectedTypes.includes(item["EXAM TYPE"]);
+          const providerMatch = selectedProviders.length === 0 || selectedProviders.includes("ALL") || selectedProviders.includes(item["PROVIDER"]);
+          const pbcbMatch = selectedPBCB.length === 0 || selectedPBCB.includes("ALL") || selectedPBCB.includes(item["PB/CB"]);
+          return examTypeMatch && providerMatch && pbcbMatch;
+        });
+        const activeFiltersDiv = document.getElementById(type === "exam" ? "examActiveFilters" : "registrationActiveFilters");
+        activeFiltersDiv.textContent =
+          "Showing " +
+          (selectedTypes.includes("ALL") ? "All Exam Types" : selectedTypes.join(", ")) +
+          " | " +
+          (selectedProviders.includes("ALL") ? "All Providers" : selectedProviders.join(", ")) +
+          " | " +
+          (selectedPBCB.includes("ALL") ? "All PB/CB" : selectedPBCB.join(", "));
+        if (type === "exam") {
+          generateExamTable(filteredData);
+        } else {
+          generateRegistrationTable(filteredData);
+        }
+      }
+
+      /***** TABLE GENERATION & FILTERING FUNCTIONS *****/
+      function generateExamTable(data) {
+        const schoolCounts = {};
+        data.forEach(item => {
+          const year = item["EXAM YEAR"];
+          if (!schoolCounts[item.SCHOOL]) schoolCounts[item.SCHOOL] = {};
+          if (!schoolCounts[item.SCHOOL][year]) schoolCounts[item.SCHOOL][year] = 0;
+          schoolCounts[item.SCHOOL][year]++;
+        });
+        const sortedYears = Array.from(new Set(data.map(item => item["EXAM YEAR"]))).sort((a, b) => b - a);
+        let tableHTML = '<table id="dataTable"><thead><tr><th onclick="sortTable(0)">School</th>';
+        sortedYears.forEach((year, index) => {
+          tableHTML += `<th onclick="sortTable(${index + 1})">${year}</th>`;
+        });
+        // Changed diff header order to show "Diff NewYear-OldYear"
+        for (let i = 1; i < sortedYears.length; i++) {
+          tableHTML += `<th onclick="sortTable(${sortedYears.length + i})">Diff ${sortedYears[i - 1]}-${sortedYears[i]}</th>`;
+        }
+        tableHTML += "</tr></thead><tbody>";
+        const schools = new Set(data.map(item => item.SCHOOL));
+        schools.forEach(school => {
+          let row = `<tr><td>${school}</td>`;
+          let counts = [];
+          sortedYears.forEach(year => {
+            const count = schoolCounts[school] ? (schoolCounts[school][year] || 0) : 0;
+            counts.push(count);
+            row += `<td>${count}</td>`;
+          });
+          for (let i = 1; i < counts.length; i++) {
+            const diff = counts[i - 1] - counts[i];
+            row += `<td class="${diff > 0 ? "positive" : "negative"}">${diff}</td>`;
+          }
+          row += "</tr>";
+          tableHTML += row;
+        });
+        tableHTML += "</tbody></table>";
+        document.getElementById("examTableContainer").innerHTML = tableHTML;
+      }
+      
+      function generateRegistrationTable(data) {
+        const schoolCounts = {};
+        data.forEach(item => {
+          const year = item["REGISTRATION YEAR"];
+          if (!schoolCounts[item.SCHOOL]) schoolCounts[item.SCHOOL] = {};
+          if (!schoolCounts[item.SCHOOL][year]) schoolCounts[item.SCHOOL][year] = 0;
+          schoolCounts[item.SCHOOL][year]++;
+        });
+        const sortedYears = Array.from(new Set(data.map(item => item["REGISTRATION YEAR"]))).sort((a, b) => b - a);
+        let tableHTML = '<table id="registrationDataTable"><thead><tr class="registration-header"><th onclick="sortTable(0, \'registration\')">School</th>';
+        sortedYears.forEach((year, index) => {
+          tableHTML += `<th onclick="sortTable(${index + 1}, 'registration')">${year}</th>`;
+        });
+        // Changed diff header order to show "Diff NewYear-OldYear"
+        for (let i = 1; i < sortedYears.length; i++) {
+          tableHTML += `<th onclick="sortTable(${sortedYears.length + i}, 'registration')">Diff ${sortedYears[i - 1]}-${sortedYears[i]}</th>`;
+        }
+        tableHTML += "</tr></thead><tbody>";
+        const schools = new Set(data.map(item => item.SCHOOL));
+        schools.forEach(school => {
+          let row = `<tr><td>${school}</td>`;
+          let counts = [];
+          sortedYears.forEach(year => {
+            const count = schoolCounts[school] ? (schoolCounts[school][year] || 0) : 0;
+            counts.push(count);
+            row += `<td>${count}</td>`;
+          });
+          for (let i = 1; i < counts.length; i++) {
+            const diff = counts[i - 1] - counts[i];
+            row += `<td class="${diff > 0 ? "positive" : "negative"}">${diff}</td>`;
+          }
+          row += "</tr>";
+          tableHTML += row;
+        });
+        tableHTML += "</tbody></table>";
+        document.getElementById("registrationTableContainer").innerHTML = tableHTML;
+      }
+      function filterTable(type = "exam") {
+        const input = document.getElementById(type === "exam" ? "searchInput" : "searchInput2").value.toUpperCase();
+        const table = document.getElementById(type === "exam" ? "dataTable" : "registrationDataTable");
+        const rows = table.getElementsByTagName("tr");
+        for (let i = 1; i < rows.length; i++) {
+          const cell = rows[i].getElementsByTagName("td")[0];
+          if (cell) {
+            const textValue = cell.textContent || cell.innerText;
+            rows[i].style.display = textValue.toUpperCase().includes(input) ? "" : "none";
+          }
+        }
+      }
+
+      /***** SECOND HALF OF JAVASCRIPT CODE *****/
+      function sortTable(columnIndex, tableType = "exam") {
+        const table = document.getElementById(tableType === "exam" ? "dataTable" : "registrationDataTable");
+        const rows = Array.from(table.rows).slice(1);
+        const isNumeric = !isNaN(rows[0].cells[columnIndex].textContent.trim());
+        sortDirections[columnIndex] = !sortDirections[columnIndex];
+        const direction = sortDirections[columnIndex] ? 1 : -1;
+        rows.sort((a, b) => {
+          const aText = a.cells[columnIndex].textContent.trim();
+          const bText = b.cells[columnIndex].textContent.trim();
+          if (isNumeric) {
+            return (parseFloat(aText) - parseFloat(bText)) * direction;
+          } else {
+            return aText.localeCompare(bText) * direction;
+          }
+        });
+        rows.forEach(row => table.tBodies[0].appendChild(row));
+      }
+
+      /***** DASHBOARD FUNCTIONS (MONTHS & YTD) *****/
+      function processData() {
+        registrationData = {};
+        examData = {};
+        jsonData.forEach(entry => {
+          processEntry(entry, "REGISTRATION YEAR", "REGISTRATION MONTH", registrationData);
+          processEntry(entry, "EXAM YEAR", "EXAM MONTH", examData);
+        });
+        updateDashboardYearSelector("exam");
+        updateDashboardYearSelector("registration");
+        updateYearHeaders();
+      }
+      function processEntry(entry, yearKey, monthKey, targetData) {
+        const year = entry[yearKey];
+        const month = monthOrder[entry[monthKey] - 1];
+        const school = entry["SCHOOL"];
+        if (!targetData[year]) targetData[year] = {};
+        if (!targetData[year][month]) targetData[year][month] = {};
+        targetData[year][month][school] = (targetData[year][month][school] || 0) + 1;
+      }
+      function updateDashboardYearSelector(type) {
+        const data = type === "registration" ? registrationData : examData;
+        const years = Object.keys(data).sort((a, b) => b - a);
+        const selectId = type === "exam" ? "exam-year-select" : "registration-year-select";
+        const selectElem = document.getElementById(selectId);
+        if (selectElem) {
+          selectElem.innerHTML = "";
+          years.forEach(year => {
+            selectElem.innerHTML += `<option value="${year}">${year}</option>`;
+          });
+          if (years.length) {
+            showYearData(type, years[0], type === "exam" ? "exam-content" : "registration-content");
+          }
+        }
+      }
+      // Modified showYearData for MONTHS pages – now without Diff columns.
+      function showYearData(type, year, targetId) {
+        const data = type === "registration" ? registrationData : examData;
+        const yearData = data[year];
+        const months = Object.keys(yearData).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
+        const schools = new Set();
+        months.forEach(month => {
+          Object.keys(yearData[month]).forEach(school => schools.add(school));
+        });
+        let table = `<h3>${type.charAt(0).toUpperCase() + type.slice(1)} Data for ${year}</h3>`;
+        // Only include School, Total and monthly columns (no Diff columns)
+        table += `<table id="${type}-table"><thead><tr><th onclick="sortTableData('${type}', 0, '${targetId}')">School</th>`;
+        table += `<th onclick="sortTableData('${type}', 1, '${targetId}')" style="font-weight:bold">Total</th>`;
+        months.forEach((month, index) => {
+          table += `<th onclick="sortTableData('${type}', ${index + 2}, '${targetId}')">${month}</th>`;
+        });
+        table += "</tr></thead><tbody>";
+        schools.forEach(school => {
+          let total = 0;
+          let row = `<tr data-school="${school}">`;
+          row += `<td>${school}</td>`;
+          let monthlyCounts = months.map(month => {
+            let count = yearData[month][school] || 0;
+            total += count;
+            return count;
+          });
+          row += `<td style="font-weight:bold">${total}</td>`;
+          monthlyCounts.forEach(count => {
+            row += `<td>${count}</td>`;
+          });
+          row += "</tr>";
+          table += row;
+        });
+        table += "</tbody></table>";
+        document.getElementById(targetId).innerHTML = table;
+      }
+      function sortTableData(type, columnIndex, targetId) {
+        const table = document.getElementById(`${type}-table`);
+        const rows = Array.from(table.rows).slice(1);
+        const isNumeric = !isNaN(rows[0].cells[columnIndex].textContent.trim());
+        sortDirections[columnIndex] = !sortDirections[columnIndex];
+        const direction = sortDirections[columnIndex] ? 1 : -1;
+        rows.sort((a, b) => {
+          const aText = a.cells[columnIndex].textContent.trim();
+          const bText = b.cells[columnIndex].textContent.trim();
+          if (isNumeric) {
+            return (parseFloat(aText) - parseFloat(bText)) * direction;
+          } else {
+            return aText.localeCompare(bText) * direction;
+          }
+        });
+        rows.forEach(row => table.tBodies[0].appendChild(row));
+      }
+      function filterTableData(type, targetId) {
+        const input = document.getElementById(`${type}-search`).value.toUpperCase();
+        const table = document.getElementById(`${type}-table`);
+        const rows = table.getElementsByTagName("tr");
+        for (let i = 1; i < rows.length; i++) {
+          const cell = rows[i].getElementsByTagName("td")[0];
+          if (cell) {
+            const textValue = cell.textContent || cell.innerText;
+            rows[i].style.display = textValue.toUpperCase().includes(input) ? "" : "none";
+          }
+        }
+      }
+      function filterTableDashboardYTD(page) {
+        let searchId, tableId;
+        if (page === "ytd-exam") {
+          searchId = "exam-ytd-search";
+          tableId = "exam-comparison-table";
+        } else if (page === "ytd-registration") {
+          searchId = "registration-ytd-search";
+          tableId = "registration-comparison-table";
+        }
+        const input = document.getElementById(searchId).value.toUpperCase();
+        const table = document.getElementById(tableId);
+        const rows = table.getElementsByTagName("tr");
+        for (let i = 1; i < rows.length; i++) {
+          const cell = rows[i].getElementsByTagName("td")[1];
+          if (cell) {
+            const textValue = cell.textContent || cell.innerText;
+            rows[i].style.display = textValue.toUpperCase().includes(input) ? "" : "none";
+          }
+        }
+      }
+      function populateDashboardFilters() {
+        if (!globalData) return;
+        let examTypes = [...new Set(globalData.map(item => item["EXAM TYPE"]))].sort();
+        let examProviders = [...new Set(globalData.map(item => item["PROVIDER"]))].sort();
+        let examPBCBs = [...new Set(globalData.map(item => item["PB/CB"]))].sort();
+        let dashboardExamSelects = [
+          "examTypeFilter_dashboard_ytd_ex",
+          "examProviderFilter_dashboard_ytd_ex",
+          "examPBCBFilter_dashboard_ytd_ex",
+          "examTypeFilter_dashboard_ex",
+          "examProviderFilter_dashboard_ex",
+          "examPBCBFilter_dashboard_ex"
+        ];
+        dashboardExamSelects = dashboardExamSelects.concat([
+          "chartExamTypeFilter",
+          "chartProviderFilter",
+          "chartPBCBFilter",
+          "chartExamTypeFilter_exams",
+          "chartProviderFilter_exams",
+          "chartPBCBFilter_exams"
+        ]);
+        dashboardExamSelects.forEach(selectId => {
+          let selectElem = document.getElementById(selectId);
+          if (selectElem) {
+            selectElem.innerHTML = "";
+            if (selectId.includes("_exams")) {
+              selectElem.add(new Option("ALL", "ALL", false, false));
+            } else {
+              selectElem.add(new Option("ALL", "ALL", true, true));
+            }
+            if (selectId.includes("Type")) {
+              examTypes.forEach(val => selectElem.add(new Option(val, val)));
+            } else if (selectId.includes("Provider")) {
+              examProviders.forEach(val => selectElem.add(new Option(val, val)));
+            } else if (selectId.includes("PBCB")) {
+              examPBCBs.forEach(val => selectElem.add(new Option(val, val)));
+            }
+          }
+        });
+        let regTypes = examTypes;
+        let regProviders = examProviders;
+        let regPBCBs = examPBCBs;
+        let dashboardRegSelects = [
+          "registrationTypeFilter_dashboard_ytd_reg",
+          "registrationProviderFilter_dashboard_ytd_reg",
+          "registrationPBCBFilter_dashboard_ytd_reg",
+          "registrationTypeFilter_dashboard_reg",
+          "registrationProviderFilter_dashboard_reg",
+          "registrationPBCBFilter_dashboard_reg"
+        ];
+        dashboardRegSelects.forEach(selectId => {
+          let selectElem = document.getElementById(selectId);
+          if (selectElem) {
+            selectElem.innerHTML = "";
+            selectElem.add(new Option("ALL", "ALL", true, true));
+            if (selectId.includes("Type")) {
+              regTypes.forEach(val => selectElem.add(new Option(val, val)));
+            } else if (selectId.includes("Provider")) {
+              regProviders.forEach(val => selectElem.add(new Option(val, val)));
+            } else if (selectId.includes("PBCB")) {
+              regPBCBs.forEach(val => selectElem.add(new Option(val, val)));
+            }
+          }
+        });
+      }
+      function applyDashboardFilter(type, targetId) {
+        let filterTypeSelectId, filterProviderSelectId, filterPBSelectId;
+        if (targetId.includes("ytd")) {
+          if (type === "exam") {
+            filterTypeSelectId = "examTypeFilter_dashboard_ytd_ex";
+            filterProviderSelectId = "examProviderFilter_dashboard_ytd_ex";
+            filterPBSelectId = "examPBCBFilter_dashboard_ytd_ex";
+          } else {
+            filterTypeSelectId = "registrationTypeFilter_dashboard_ytd_reg";
+            filterProviderSelectId = "registrationProviderFilter_dashboard_ytd_reg";
+            filterPBSelectId = "registrationPBCBFilter_dashboard_ytd_reg";
+          }
+        } else {
+          if (type === "exam") {
+            filterTypeSelectId = "examTypeFilter_dashboard_ex";
+            filterProviderSelectId = "examProviderFilter_dashboard_ex";
+            filterPBSelectId = "examPBCBFilter_dashboard_ex";
+          } else {
+            filterTypeSelectId = "registrationTypeFilter_dashboard_reg";
+            filterProviderSelectId = "registrationProviderFilter_dashboard_reg";
+            filterPBSelectId = "registrationPBCBFilter_dashboard_reg";
+          }
+        }
+        const selectedTypes = Array.from(document.getElementById(filterTypeSelectId).selectedOptions).map(opt => opt.value);
+        const selectedProviders = Array.from(document.getElementById(filterProviderSelectId).selectedOptions).map(opt => opt.value);
+        const selectedPBCB = Array.from(document.getElementById(filterPBSelectId).selectedOptions).map(opt => opt.value);
+        let filtered = globalData.filter(item => {
+          let typeKey = type === "exam" ? "EXAM TYPE" : "EXAM TYPE";
+          let typeMatch = selectedTypes.includes("ALL") || selectedTypes.includes(item[typeKey]);
+          let providerMatch = selectedProviders.includes("ALL") || selectedProviders.includes(item["PROVIDER"]);
+          let pbMatch = selectedPBCB.includes("ALL") || selectedPBCB.includes(item["PB/CB"]);
+          return typeMatch && providerMatch && pbMatch;
+        });
+        if (type === "exam") {
+          examData = {};
+          filtered.forEach(entry => processEntry(entry, "EXAM YEAR", "EXAM MONTH", examData));
+          if (targetId.includes("ytd")) {
+            updateExamComparisonTable();
+          } else {
+            let selectElem = document.getElementById("exam-year-select");
+            if (selectElem && selectElem.value) {
+              showYearData("exam", selectElem.value, targetId);
+            }
+          }
+        } else {
+          registrationData = {};
+          filtered.forEach(entry => processEntry(entry, "REGISTRATION YEAR", "REGISTRATION MONTH", registrationData));
+          if (targetId.includes("ytd")) {
+            updateRegistrationComparisonTable();
+          } else {
+            let selectElem = document.getElementById("registration-year-select");
+            if (selectElem && selectElem.value) {
+              showYearData("registration", selectElem.value, targetId);
+            }
+          }
+        }
+        let activeFiltersDiv = document.getElementById(
+          targetId.includes("ytd")
+            ? type === "exam"
+              ? "examDashboard_ytd_exActiveFilters"
+              : "registrationDashboard_ytd_regActiveFilters"
+            : type === "exam"
+            ? "examDashboard_exActiveFilters"
+            : "registrationDashboard_regActiveFilters"
+        );
+        activeFiltersDiv.textContent =
+          "Filters: " + selectedTypes.join(", ") + " | " + selectedProviders.join(", ") + " | " + selectedPBCB.join(", ");
+      }
+
+      /***** YTD FUNCTIONS: Exam & Registration Comparison Tables *****/
+      function updateExamComparisonTable() {
+        const slider = document.getElementById("exam-month-slider");
+        const selectedMonthIndex = parseInt(slider.value);
+        const selectedMonth = monthOrder[selectedMonthIndex];
+        document.getElementById("exam-current-month").innerHTML = "Selected Month: <strong>" + selectedMonth + "</strong>";
+        let years = Object.keys(examData).filter(year => {
+          let sum = 0;
+          for (let m = 0; m <= selectedMonthIndex; m++) {
+            const monthName = monthOrder[m];
+            if (examData[year] && examData[year][monthName]) {
+              sum += Object.values(examData[year][monthName]).reduce((a, b) => a + b, 0);
+            }
+          }
+          return sum > 0;
+        }).sort((a, b) => b - a);
+        if (years.length === 0) {
+          let table = document.getElementById("exam-comparison-table");
+          table.querySelector("thead").innerHTML = "<tr><th>Pin</th><th>School</th></tr>";
+          document.querySelector("#exam-comparison-table tbody").innerHTML =
+            "<tr><td colspan='7'>No data available for the selected month</td></tr>";
+          return;
+        }
+        // Removed the line that limits to 5 years:
+        // years = years.slice(0, 5);
+
+        // Rebuild header row with year and difference columns
+        let table = document.getElementById("exam-comparison-table");
+        let thead = table.querySelector("thead");
+        let headerRow = "<tr>";
+        headerRow += "<th>Pin</th>";
+        headerRow += "<th onclick=\"sortTableDashboardYTD('ytd-exam', 1)\">School</th>";
+        for (let i = 0; i < years.length; i++){
+            headerRow += `<th onclick="sortTableDashboardYTD('ytd-exam', ${i+2})">${years[i]}</th>`;
+        }
+        for (let i = 1; i < years.length; i++){
+            headerRow += `<th onclick="sortTableDashboardYTD('ytd-exam', ${years.length + i + 1})">Diff ${years[i-1]}-${years[i]}</th>`;
+        }
+        headerRow += "</tr>";
+        thead.innerHTML = headerRow;
+        
+        const tbody = table.getElementsByTagName("tbody")[0];
+        tbody.innerHTML = "";
+        // Build TOTAL row (always pinned, bold font)
+        let totalRow = document.createElement("tr");
+        totalRow.classList.add("total-row");
+        let totalPinCell = document.createElement("td");
+        totalPinCell.textContent = "";
+        totalPinCell.style.fontWeight = "bold";
+        totalRow.appendChild(totalPinCell);
+        let totalLabelCell = document.createElement("td");
+        totalLabelCell.textContent = "TOTAL";
+        totalLabelCell.style.fontWeight = "bold";
+        totalRow.appendChild(totalLabelCell);
+        let totalValues = [];
+        years.forEach(year => {
+          let total = 0;
+          if (examData[year]) {
+            for (let m = 0; m <= selectedMonthIndex; m++){
+                let monthName = monthOrder[m];
+                if (examData[year][monthName]){
+                    total += Object.values(examData[year][monthName]).reduce((a, b) => a + b, 0);
+                }
+            }
+          }
+          totalValues.push(total);
+          let td = document.createElement("td");
+          td.textContent = total;
+          td.style.fontWeight = "bold";
+          totalRow.appendChild(td);
+        });
+        for(let i = 1; i < totalValues.length; i++){
+          let diff = totalValues[i-1] - totalValues[i];
+          let td = document.createElement("td");
+          td.textContent = diff;
+          td.style.fontWeight = "bold";
+          if(diff > 0) td.classList.add("positive");
+          else if(diff < 0) td.classList.add("negative");
+          totalRow.appendChild(td);
+        }
+        tbody.appendChild(totalRow);
+        
+        // --- Modified code for persistent pinned order ---
+        let schoolsSet = new Set();
+        years.forEach(year => {
+          if (examData[year]) {
+            for (let m = 0; m <= selectedMonthIndex; m++) {
+              const monthName = monthOrder[m];
+              if (examData[year][monthName]) {
+                Object.keys(examData[year][monthName]).forEach(school => schoolsSet.add(school));
+              }
+            }
+          }
+        });
+        // Ensure pinned schools are included.
+        pinnedExamSchools.forEach(school => schoolsSet.add(school));
+        let allSchools = Array.from(schoolsSet);
+        // For unpinned, sort alphabetically
+        let unpinned = allSchools.filter(school => !pinnedExamSchools.includes(school));
+        unpinned.sort();
+        // Final order: pinned rows (in the order they were pinned) then unpinned rows.
+        let sortedSchools = pinnedExamSchools.concat(unpinned);
+        // --- End of modifications ---
+        
+        sortedSchools.forEach(school => {
+          let row = document.createElement("tr");
+          // Preserve the pinned order by using the global pinnedExamSchools order.
+          row.setAttribute("data-school", school);
+          if (pinnedExamSchools.includes(school)) {
+            row.classList.add("pinned-row");
+          }
+          let pinCell = document.createElement("td");
+          let pinButton = document.createElement("button");
+          pinButton.style.cursor = "pointer";
+          // Use no background for individual row pin buttons and use 📌 for unpinned.
+          if (pinnedExamSchools.includes(school)) {
+            pinButton.textContent = "✅";
+          } else {
+            pinButton.textContent = "📌";
+          }
+          pinButton.onclick = function () {
+            togglePin("exam", school);
+          };
+          pinCell.appendChild(pinButton);
+          row.appendChild(pinCell);
+          let schoolCell = document.createElement("td");
+          schoolCell.textContent = school;
+          row.appendChild(schoolCell);
+          let schoolTotals = [];
+          years.forEach(year => {
+              let total = 0;
+              if (examData[year]) {
+                  for (let m = 0; m <= selectedMonthIndex; m++){
+                      let monthName = monthOrder[m];
+                      if (examData[year][monthName] && examData[year][monthName][school]) {
+                          total += examData[year][monthName][school];
+                      }
+                  }
+              }
+              schoolTotals.push(total);
+              let td = document.createElement("td");
+              td.textContent = total;
+              row.appendChild(td);
+          });
+          for(let i = 1; i < schoolTotals.length; i++){
+              let diff = schoolTotals[i-1] - schoolTotals[i];
+              let td = document.createElement("td");
+              td.textContent = diff;
+              if(diff > 0) td.classList.add("positive");
+              else if(diff < 0) td.classList.add("negative");
+              row.appendChild(td);
+          }
+          tbody.appendChild(row);
+        });
+      }
+      function updateRegistrationComparisonTable() {
+        const slider = document.getElementById("registration-month-slider");
+        const selectedMonthIndex = parseInt(slider.value);
+        const selectedMonth = monthOrder[selectedMonthIndex];
+        document.getElementById("registration-current-month").innerHTML = "Selected Month: <strong>" + selectedMonth + "</strong>";
+        let years = Object.keys(registrationData).filter(year => {
+          let sum = 0;
+          for (let m = 0; m <= selectedMonthIndex; m++) {
+            const monthName = monthOrder[m];
+            if (registrationData[year] && registrationData[year][monthName]) {
+              sum += Object.values(registrationData[year][monthName]).reduce((a, b) => a + b, 0);
+            }
+          }
+          return sum > 0;
+        }).sort((a, b) => b - a);
+        if (years.length === 0) {
+          let table = document.getElementById("registration-comparison-table");
+          table.querySelector("thead").innerHTML = "<tr><th>Pin</th><th>School</th></tr>";
+          document.querySelector("#registration-comparison-table tbody").innerHTML =
+            "<tr><td colspan='7'>No data available for the selected month</td></tr>";
+          return;
+        }
+        // Removed the limitation to 5 years:
+        // years = years.slice(0, 5);
+
+        // Rebuild header row with year and difference columns
+        let table = document.getElementById("registration-comparison-table");
+        let thead = table.querySelector("thead");
+        let headerRow = "<tr>";
+        headerRow += "<th>Pin</th>";
+        headerRow += "<th onclick=\"sortTableDashboardYTD('ytd-registration', 1)\">School</th>";
+        for (let i = 0; i < years.length; i++){
+            headerRow += `<th onclick="sortTableDashboardYTD('ytd-registration', ${i+2})">${years[i]}</th>`;
+        }
+        for (let i = 1; i < years.length; i++){
+            headerRow += `<th onclick="sortTableDashboardYTD('ytd-registration', ${years.length + i + 1})">Diff ${years[i-1]}-${years[i]}</th>`;
+        }
+        headerRow += "</tr>";
+        thead.innerHTML = headerRow;
+        
+        const tbody = table.getElementsByTagName("tbody")[0];
+        tbody.innerHTML = "";
+        // Build TOTAL row (always pinned, bold font)
+        let totalRow = document.createElement("tr");
+        totalRow.classList.add("total-row");
+        let totalPinCell = document.createElement("td");
+        totalPinCell.textContent = "";
+        totalPinCell.style.fontWeight = "bold";
+        totalRow.appendChild(totalPinCell);
+        let totalLabelCell = document.createElement("td");
+        totalLabelCell.textContent = "TOTAL";
+        totalLabelCell.style.fontWeight = "bold";
+        totalRow.appendChild(totalLabelCell);
+        let totalValues = [];
+        years.forEach(year => {
+          let total = 0;
+          if (registrationData[year]) {
+            for (let m = 0; m <= selectedMonthIndex; m++){
+                let monthName = monthOrder[m];
+                if (registrationData[year][monthName]){
+                    total += Object.values(registrationData[year][monthName]).reduce((a, b) => a + b, 0);
+                }
+            }
+          }
+          totalValues.push(total);
+          let td = document.createElement("td");
+          td.textContent = total;
+          td.style.fontWeight = "bold";
+          totalRow.appendChild(td);
+        });
+        for(let i = 1; i < totalValues.length; i++){
+          let diff = totalValues[i-1] - totalValues[i];
+          let td = document.createElement("td");
+          td.textContent = diff;
+          td.style.fontWeight = "bold";
+          if(diff > 0) td.classList.add("positive");
+          else if(diff < 0) td.classList.add("negative");
+          totalRow.appendChild(td);
+        }
+        tbody.appendChild(totalRow);
+        
+        // --- Modified code for persistent pinned order ---
+        let schoolsSet = new Set();
+        years.forEach(year => {
+          if (registrationData[year]) {
+            for (let m = 0; m <= selectedMonthIndex; m++) {
+              const monthName = monthOrder[m];
+              if (registrationData[year][monthName]) {
+                Object.keys(registrationData[year][monthName]).forEach(school => schoolsSet.add(school));
+              }
+            }
+          }
+        });
+        pinnedRegistrationSchools.forEach(school => schoolsSet.add(school));
+        let allSchools = Array.from(schoolsSet);
+        let unpinned = allSchools.filter(school => !pinnedRegistrationSchools.includes(school));
+        unpinned.sort();
+        let sortedSchools = pinnedRegistrationSchools.concat(unpinned);
+        // --- End of modifications ---
+        
+        sortedSchools.forEach(school => {
+          let row = document.createElement("tr");
+          row.setAttribute("data-school", school);
+          if (pinnedRegistrationSchools.includes(school)) {
+            row.classList.add("pinned-row");
+          }
+          let pinCell = document.createElement("td");
+          let pinButton = document.createElement("button");
+          pinButton.style.cursor = "pointer";
+          if (pinnedRegistrationSchools.includes(school)) {
+            pinButton.textContent = "✅";
+          } else {
+            pinButton.textContent = "📌";
+          }
+          pinButton.onclick = function () { togglePin("registration", school); };
+          pinCell.appendChild(pinButton);
+          row.appendChild(pinCell);
+          let schoolCell = document.createElement("td");
+          schoolCell.textContent = school;
+          row.appendChild(schoolCell);
+          let schoolTotals = [];
+          years.forEach(year => {
+              let total = 0;
+              if (registrationData[year]) {
+                  for (let m = 0; m <= selectedMonthIndex; m++){
+                      let monthName = monthOrder[m];
+                      if (registrationData[year][monthName] && registrationData[year][monthName][school]) {
+                          total += registrationData[year][monthName][school];
+                      }
+                  }
+              }
+              schoolTotals.push(total);
+              let td = document.createElement("td");
+              td.textContent = total;
+              row.appendChild(td);
+          });
+          for(let i = 1; i < schoolTotals.length; i++){
+              let diff = schoolTotals[i-1] - schoolTotals[i];
+              let td = document.createElement("td");
+              td.textContent = diff;
+              if(diff > 0) td.classList.add("positive");
+              else if(diff < 0) td.classList.add("negative");
+              row.appendChild(td);
+          }
+          tbody.appendChild(row);
+        });
+      }
+      // Update a single row's pin appearance without reordering the table.
+      function updatePinRow(type, school) {
+        let tableId = type === "exam" ? "exam-comparison-table" : "registration-comparison-table";
+        let row = document.querySelector(`#${tableId} tbody tr[data-school="${school}"]`);
+        if (row) {
+          let pinCell = row.cells[0];
+          let button = pinCell.querySelector("button");
+          let isPinned = (type === "exam") ? pinnedExamSchools.includes(school) : pinnedRegistrationSchools.includes(school);
+          if (isPinned) {
+            button.textContent = "✅";
+            row.classList.add("pinned-row");
+          } else {
+            button.textContent = "📌";
+            row.classList.remove("pinned-row");
+          }
+        }
+      }
+      // Modified togglePin to update only the affected row in place.
+      function togglePin(type, school) {
+        if (type === "exam") {
+          if (pinnedExamSchools.includes(school)) {
+            pinnedExamSchools = pinnedExamSchools.filter(s => s !== school);
+          } else {
+            pinnedExamSchools.push(school);
+          }
+          updatePinRow("exam", school);
+          updatePinAllButton("exam");
+        } else {
+          if (pinnedRegistrationSchools.includes(school)) {
+            pinnedRegistrationSchools = pinnedRegistrationSchools.filter(s => s !== school);
+          } else {
+            pinnedRegistrationSchools.push(school);
+          }
+          updatePinRow("registration", school);
+          updatePinAllButton("registration");
+        }
+      }
+      // Helper function to get all schools for the current month for a given type.
+      function getAllSchoolsForType(type) {
+        const sliderId = type === "exam" ? "exam-month-slider" : "registration-month-slider";
+        const slider = document.getElementById(sliderId);
+        const selectedMonthIndex = parseInt(slider.value);
+        const data = type === "exam" ? examData : registrationData;
+        let schoolsSet = new Set();
+        Object.keys(data).forEach(year => {
+          for (let m = 0; m <= selectedMonthIndex; m++) {
+            let monthName = monthOrder[m];
+            if (data[year] && data[year][monthName]) {
+              Object.keys(data[year][monthName]).forEach(school => schoolsSet.add(school));
+            }
+          }
+        });
+        // Include any already pinned schools.
+        const pinned = type === "exam" ? pinnedExamSchools : pinnedRegistrationSchools;
+        pinned.forEach(school => schoolsSet.add(school));
+        return Array.from(schoolsSet).sort();
+      }
+      // Modified togglePinAll to switch between pinning and unpinning:
+      function togglePinAll(type) {
+        if (type === "exam") {
+          if (pinnedExamSchools.length > 0) {
+            // Unpin all if any are pinned.
+            pinnedExamSchools = [];
+          } else {
+            let tableId = "exam-comparison-table";
+            let tbody = document.querySelector(`#${tableId} tbody`);
+            let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+            // Capture the current displayed order for pinned rows.
+            pinnedExamSchools = rows.map(row => row.getAttribute("data-school"));
+          }
+          let tableId = "exam-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          rows.forEach(row => {
+            let school = row.getAttribute("data-school");
+            updatePinRow("exam", school);
+          });
+          updatePinAllButton("exam");
+        } else {
+          if (pinnedRegistrationSchools.length > 0) {
+            pinnedRegistrationSchools = [];
+          } else {
+            let tableId = "registration-comparison-table";
+            let tbody = document.querySelector(`#${tableId} tbody`);
+            let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+            pinnedRegistrationSchools = rows.map(row => row.getAttribute("data-school"));
+          }
+          let tableId = "registration-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          rows.forEach(row => {
+            let school = row.getAttribute("data-school");
+            updatePinRow("registration", school);
+          });
+          updatePinAllButton("registration");
+        }
+      }
+      function updatePinAllButton(type) {
+        if (type === "exam") {
+          let tableId = "exam-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          let allSchools = rows.map(row => row.getAttribute("data-school"));
+          const btn = document.getElementById("togglePinExamButton");
+          if (pinnedExamSchools.length === allSchools.length && allSchools.length > 0) {
+            btn.textContent = "Unpin All";
+            btn.style.backgroundColor = "#ffcccc"; // Unpin All color
+            btn.style.border = "2px solid black";
+          } else {
+            btn.textContent = "Pin All";
+            btn.style.backgroundColor = "#ccffd9"; // Pin All color
+            btn.style.border = "2px solid black";
+          }
+        } else {
+          let tableId = "registration-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          let allSchools = rows.map(row => row.getAttribute("data-school"));
+          const btn = document.getElementById("togglePinRegistrationButton");
+          if (pinnedRegistrationSchools.length === allSchools.length && allSchools.length > 0) {
+            btn.textContent = "Unpin All";
+            btn.style.backgroundColor = "#ffcccc";
+            btn.style.border = "2px solid black";
+          } else {
+            btn.textContent = "Pin All";
+            btn.style.backgroundColor = "#ccffd9";
+            btn.style.border = "2px solid black";
+          }
+        }
+      }
+      function sortTableDashboardYTD(page, columnIndex) {
+        let tableId = page === "ytd-exam" ? "exam-comparison-table" : "registration-comparison-table";
+        const table = document.getElementById(tableId);
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+        // Separate rows into TOTAL, pinned, and unpinned
+        let totalRows = rows.filter(row => row.classList.contains("total-row"));
+        let pinnedRows = rows.filter(row => row.classList.contains("pinned-row"));
+        let unpinnedRows = rows.filter(row => !row.classList.contains("total-row") && !row.classList.contains("pinned-row"));
+        if (unpinnedRows.length === 0) return;
+        const isNumeric = !isNaN(unpinnedRows[0].cells[columnIndex].textContent.trim());
+        sortDirections[columnIndex] = !sortDirections[columnIndex];
+        const direction = sortDirections[columnIndex] ? 1 : -1;
+        unpinnedRows.sort((a, b) => {
+            const aText = a.cells[columnIndex].textContent.trim();
+            const bText = b.cells[columnIndex].textContent.trim();
+            if (isNumeric) {
+              return (parseFloat(aText) - parseFloat(bText)) * direction;
+            } else {
+              return aText.localeCompare(bText) * direction;
+            }
+        });
+        // Reassemble: TOTAL rows first, then pinned rows (unchanged), then sorted unpinned rows.
+        tbody.innerHTML = "";
+        totalRows.forEach(row => tbody.appendChild(row));
+        pinnedRows.forEach(row => tbody.appendChild(row));
+        unpinnedRows.forEach(row => tbody.appendChild(row));
+      }
+      function updateYearHeaders() {
+        // Placeholder for extra header updates if needed.
+      }
+      
+      /***** CHART PAGE FUNCTIONS USING HIGHCHARTS *****/
+      function populateChartSchoolOptions() {
+        if (!globalData) return;
+        const schools = [...new Set(globalData.map(item => item["SCHOOL"]))].sort();
+        const availableSelect = document.getElementById("available-schools");
+        availableSelect.innerHTML = "";
+        let totalOpt = document.createElement("option");
+        totalOpt.value = "TOTAL";
+        totalOpt.text = "TOTAL";
+        availableSelect.add(totalOpt);
+        schools.forEach(school => {
+          let opt = document.createElement("option");
+          opt.value = school;
+          opt.text = school;
+          availableSelect.add(opt);
+        });
+      }
+      function filterAvailableSchools() {
+        const searchText = document.getElementById("chart-available-search").value.toUpperCase();
+        const selectElem = document.getElementById("available-schools");
+        Array.from(selectElem.options).forEach(option => {
+          option.style.display = option.text.toUpperCase().includes(searchText) ? "" : "none";
+        });
+      }
+      function addSchool() {
+        const availableSelect = document.getElementById("available-schools");
+        const selectedSelect = document.getElementById("selected-schools");
+        Array.from(availableSelect.selectedOptions).forEach(option => {
+          if (!Array.from(selectedSelect.options).some(o => o.value === option.value)) {
+            let newOpt = document.createElement("option");
+            newOpt.value = option.value;
+            newOpt.text = option.text;
+            selectedSelect.add(newOpt);
+          }
+        });
+      }
+      function removeSchool() {
+        const selectedSelect = document.getElementById("selected-schools");
+        Array.from(selectedSelect.selectedOptions).forEach(option => {
+          selectedSelect.remove(option.index);
+        });
+      }
+      function getChartFilteredData() {
+        if (!globalData) return [];
+        let selectedExamTypes = Array.from(document.getElementById("chartExamTypeFilter").selectedOptions).map(opt => opt.value);
+        let selectedProviders = Array.from(document.getElementById("chartProviderFilter").selectedOptions).map(opt => opt.value);
+        let selectedPBCB = Array.from(document.getElementById("chartPBCBFilter").selectedOptions).map(opt => opt.value);
+        return globalData.filter(item => {
+          let examTypeMatch = selectedExamTypes.includes("ALL") || selectedExamTypes.includes(item["EXAM TYPE"]);
+          let providerMatch = selectedProviders.includes("ALL") || selectedProviders.includes(item["PROVIDER"]);
+          let pbcbMatch = selectedPBCB.includes("ALL") || selectedPBCB.includes(item["PB/CB"]);
+          return examTypeMatch && providerMatch && pbcbMatch;
+        });
+      }
+      function updateCharts() {
+        const metric = document.querySelector('input[name="chartMetric"]:checked').value;
+        let selectedSchools = Array.from(document.getElementById("selected-schools").options).map(opt => opt.value);
+        if (selectedSchools.length === 0) return;
+        if (selectedSchools.includes("TOTAL")) {
+          selectedSchools = ["TOTAL"];
+        }
+        let filteredData = getChartFilteredData();
+        let localExamData = {};
+        let localRegistrationData = {};
+        filteredData.forEach(entry => {
+          processEntry(entry, "EXAM YEAR", "EXAM MONTH", localExamData);
+          processEntry(entry, "REGISTRATION YEAR", "REGISTRATION MONTH", localRegistrationData);
+        });
+        let dataSource = metric === "Exam" ? localExamData : localRegistrationData;
+        let yearlyData = {};
+        Object.keys(dataSource).forEach(year => {
+          selectedSchools.forEach(school => {
+            let sum = 0;
+            if (dataSource[year]) {
+              if (school === "TOTAL") {
+                Object.keys(dataSource[year]).forEach(month => {
+                  sum += Object.values(dataSource[year][month]).reduce((a, b) => a + b, 0);
+                });
+              } else {
+                Object.keys(dataSource[year]).forEach(month => {
+                  if (dataSource[year][month][school]) {
+                    sum += dataSource[year][month][school];
+                  }
+                });
+              }
+            }
+            if (!yearlyData[school]) yearlyData[school] = {};
+            yearlyData[school][year] = sum;
+          });
+        });
+        let monthlyData = {};
+        Object.keys(dataSource).forEach(year => {
+          selectedSchools.forEach(school => {
+            if (!monthlyData[school]) monthlyData[school] = {};
+            monthlyData[school][year] = Array(12).fill(0);
+            for (let i = 0; i < 12; i++) {
+              let mName = monthOrder[i];
+              if (dataSource[year][mName]) {
+                if (school === "TOTAL") {
+                  monthlyData[school][year][i] = Object.values(dataSource[year][mName]).reduce((a, b) => a + b, 0);
+                } else if (dataSource[year][mName][school]) {
+                  monthlyData[school][year][i] = dataSource[year][mName][school];
+                }
+              }
+            }
+          });
+        });
+        let yearsForChart = Object.keys(dataSource).sort();
+        let barSeries = [];
+        selectedSchools.forEach(school => {
+          let data = yearsForChart.map(year => yearlyData[school][year] || 0);
+          barSeries.push({ name: school, data: data });
+        });
+        Highcharts.chart("chartYearlyContainer", {
+          chart: { type: "column" },
+          title: { text: metric + " - Yearly Totals" },
+          xAxis: { categories: yearsForChart, title: { text: "Year" } },
+          yAxis: { min: 0, title: { text: "Count" } },
+          plotOptions: { column: { dataLabels: { enabled: true } } },
+          series: barSeries
+        });
+        let lineSeries = [];
+        selectedSchools.forEach(school => {
+          Object.keys(monthlyData[school]).forEach(year => {
+            let data = monthlyData[school][year];
+            lineSeries.push({ name: school + " (" + year + ")", data: data, dataLabels: { enabled: true } });
+          });
+        });
+        Highcharts.chart("chartMonthlyContainer", {
+          chart: { type: "line" },
+          title: { text: metric + " - Monthly Data" },
+          xAxis: { categories: monthOrder, title: { text: "Month" } },
+          yAxis: { title: { text: "Count" } },
+          plotOptions: { line: { dataLabels: { enabled: true } } },
+          series: lineSeries
+        });
+        let cumulativeSeries = [];
+        lineSeries.forEach(series => {
+          let cumulative = [];
+          series.data.reduce((a, b, i) => (cumulative[i] = a + b, a + b), 0);
+          cumulativeSeries.push({ name: series.name, data: cumulative, dataLabels: { enabled: true } });
+        });
+        Highcharts.chart("chartCumulativeContainer", {
+          chart: { type: "line" },
+          title: { text: metric + " - Cumulative Monthly Totals" },
+          xAxis: { categories: monthOrder, title: { text: "Month" } },
+          yAxis: { title: { text: "Cumulative Count" } },
+          plotOptions: { line: { dataLabels: { enabled: true } } },
+          series: cumulativeSeries
+        });
+      }
+      
+      /***** CHARTS EXAMS PAGE FUNCTIONS *****/
+      function getChartExamsFilteredData() {
+        if (!globalData) return [];
+        let selectedExamTypes = Array.from(document.getElementById("chartExamTypeFilter_exams").selectedOptions).map(opt => opt.value);
+        let selectedProviders = Array.from(document.getElementById("chartProviderFilter_exams").selectedOptions).map(opt => opt.value);
+        let selectedPBCB = Array.from(document.getElementById("chartPBCBFilter_exams").selectedOptions).map(opt => opt.value);
+        return globalData.filter(item => {
+          let examTypeMatch = selectedExamTypes.includes("ALL") || selectedExamTypes.includes(item["EXAM TYPE"]);
+          let providerMatch = selectedProviders.includes("ALL") || selectedProviders.includes(item["PROVIDER"]);
+          let pbcbMatch = selectedPBCB.includes("ALL") || selectedPBCB.includes(item["PB/CB"]);
+          return examTypeMatch && providerMatch && pbcbMatch;
+        });
+      }
+      function updateChartsExams() {
+        let metric = document.querySelector('input[name="chartMetricExams"]:checked').value;
+        let filteredData = getChartExamsFilteredData();
+        let groupBy = document.getElementById("groupBySelect").value;
+        let localData = {};
+        filteredData.forEach(entry => {
+          let yearKey = metric === "Exam" ? "EXAM YEAR" : "REGISTRATION YEAR";
+          let monthKey = metric === "Exam" ? "EXAM MONTH" : "REGISTRATION MONTH";
+          let year = entry[yearKey];
+          let month = monthOrder[entry[monthKey] - 1];
+          let groupValue = entry[groupBy];
+          if (!localData[year]) localData[year] = {};
+          if (!localData[year][month]) localData[year][month] = {};
+          localData[year][month][groupValue] = (localData[year][month][groupValue] || 0) + 1;
+        });
+        let yearsForChart = Object.keys(localData).sort();
+        let groupsSet = new Set();
+        for (let year in localData) {
+          for (let month in localData[year]) {
+            for (let group in localData[year][month]) {
+              groupsSet.add(group);
+            }
+          }
+        }
+        let groups = Array.from(groupsSet).sort();
+        let yearlySeries = [];
+        groups.forEach(group => {
+          let data = yearsForChart.map(year => {
+            let total = 0;
+            if (localData[year]) {
+              for (let m in localData[year]) {
+                total += localData[year][m][group] || 0;
+              }
+            }
+            return total;
+          });
+          yearlySeries.push({ name: group, data: data });
+        });
+        Highcharts.chart("chartExamsYearlyContainer", {
+          chart: { type: "column" },
+          title: { text: metric + " - Yearly Totals (Grouped by " + groupBy + ")" },
+          xAxis: { categories: yearsForChart, title: { text: "Year" } },
+          yAxis: { min: 0, title: { text: "Count" } },
+          plotOptions: { column: { dataLabels: { enabled: true } } },
+          series: yearlySeries
+        });
+        let monthlySeries = [];
+        groups.forEach(group => {
+          for (let year of yearsForChart) {
+            let data = Array(12).fill(0);
+            for (let i = 0; i < 12; i++) {
+              let mName = monthOrder[i];
+              if (localData[year] && localData[year][mName] && localData[year][mName][group]) {
+                data[i] = localData[year][mName][group];
+              }
+            }
+            monthlySeries.push({ name: group + " (" + year + ")", data: data, dataLabels: { enabled: true } });
+          }
+        });
+        Highcharts.chart("chartExamsMonthlyContainer", {
+          chart: { type: "line" },
+          title: { text: metric + " - Monthly Data (Grouped by " + groupBy + ")" },
+          xAxis: { categories: monthOrder, title: { text: "Month" } },
+          yAxis: { title: { text: "Count" } },
+          plotOptions: { line: { dataLabels: { enabled: true } } },
+          series: monthlySeries
+        });
+        let cumulativeSeries = [];
+        monthlySeries.forEach(series => {
+          let cumulative = [];
+          series.data.reduce((a, b, i) => (cumulative[i] = a + b, a + b), 0);
+          cumulativeSeries.push({ name: series.name, data: cumulative, dataLabels: { enabled: true } });
+        });
+        Highcharts.chart("chartExamsCumulativeContainer", {
+          chart: { type: "line" },
+          title: { text: metric + " - Cumulative Monthly Totals (Grouped by " + groupBy + ")" },
+          xAxis: { categories: monthOrder, title: { text: "Month" } },
+          yAxis: { title: { text: "Cumulative Count" } },
+          plotOptions: { line: { dataLabels: { enabled: true } } },
+          series: cumulativeSeries
+        });
+      }
+      function applyChartExamsFilter() {
+        updateChartsExams();
+      }
+
+      /***** TOTAL DATA PAGE FUNCTIONS *****/
+      function buildTotalDataTables() {
+        if (!globalData) return;
+        buildTotalTablesForMetric("Exam", "total-exam-tables");
+        buildTotalTablesForMetric("Registration", "total-registration-tables");
+      }
+      function buildTotalTablesForMetric(metric, containerId) {
+        const yearKey = metric === "Exam" ? "EXAM YEAR" : "REGISTRATION YEAR";
+        const monthKey = metric === "Exam" ? "EXAM MONTH" : "REGISTRATION MONTH";
+        const providers = [...new Set(globalData.filter(item => item[yearKey]).map(item => item["PROVIDER"]))].sort();
+        let html = "";
+        providers.forEach(provider => {
+          html += `<h3>Provider: ${provider}</h3>`;
+          html += buildTotalTable(metric, provider, yearKey, monthKey);
+        });
+        document.getElementById(containerId).innerHTML = html;
+      }
+      function buildTotalTable(metric, provider, yearKey, monthKey) {
+        const records = globalData.filter(item => item["PROVIDER"] === provider && item[yearKey]);
+        let totals = {};
+        records.forEach(item => {
+          const year = item[yearKey];
+          const month = monthOrder[item[monthKey] - 1];
+          if (!totals[year]) totals[year] = {};
+          if (!totals[year][month]) totals[year][month] = 0;
+          totals[year][month] += 1;
+        });
+        const years = Object.keys(totals).sort();
+        let tableHTML = "<table border='1' cellspacing='0' cellpadding='5'><thead><tr>";
+        tableHTML += "<th>Year</th><th style='font-weight:bold'>Total</th>";
+        monthOrder.forEach(m => (tableHTML += `<th>${m}</th>`));
+        tableHTML += "</tr></thead><tbody>";
+        years.forEach(year => {
+          tableHTML += `<tr><td>${year}</td>`;
+          let rowTotal = 0;
+          monthOrder.forEach(m => {
+            const val = totals[year][m] || 0;
+            rowTotal += val;
+          });
+          tableHTML += `<td style='font-weight:bold'>${rowTotal}</td>`;
+          monthOrder.forEach(m => {
+            const val = totals[year][m] || 0;
+            tableHTML += `<td>${val}</td>`;
+          });
+          tableHTML += "</tr>";
+        });
+        tableHTML += "</tbody></table>";
+        return tableHTML;
+      }
+
+      /***** NEW: Combined Total Table and Yearly Chart *****/
+      function buildCombinedTotalTable() {
+        if (!globalData) return;
+        let examTotals = {};
+        let regTotals = {};
+        globalData.forEach(item => {
+          let examYear = item["EXAM YEAR"];
+          let regYear = item["REGISTRATION YEAR"];
+          if (examYear) examTotals[examYear] = (examTotals[examYear] || 0) + 1;
+          if (regYear) regTotals[regYear] = (regTotals[regYear] || 0) + 1;
+        });
+        // Create union of years
+        let yearsSet = new Set([...Object.keys(examTotals), ...Object.keys(regTotals)]);
+        let years = Array.from(yearsSet).sort((a, b) => a - b);
+        let tableHTML = "<table style='width:100%; font-weight:bold;' border='1' cellspacing='0' cellpadding='5'>";
+        tableHTML += "<thead><tr><th>Year</th><th>Exam Total</th><th>Registration Total</th></tr></thead><tbody>";
+        years.forEach(year => {
+          tableHTML += `<tr><td>${year}</td><td>${examTotals[year] || 0}</td><td>${regTotals[year] || 0}</td></tr>`;
+        });
+        tableHTML += "</tbody></table>";
+        document.getElementById("combined-total-table").innerHTML = tableHTML;
+        updateCombinedTotalChart(years, examTotals, regTotals);
+      }
+      function updateCombinedTotalChart(years, examTotals, regTotals) {
+        let examDataArr = years.map(year => examTotals[year] || 0);
+        let regDataArr = years.map(year => regTotals[year] || 0);
+        Highcharts.chart("combinedTotalChart", {
+          chart: { type: "column" },
+          title: { text: "Combined Yearly Totals" },
+          xAxis: { categories: years, title: { text: "Year" } },
+          yAxis: { min: 0, title: { text: "Count" } },
+          plotOptions: { column: { dataLabels: { enabled: true } } },
+          series: [{
+            name: "Exam Total",
+            data: examDataArr
+          },{
+            name: "Registration Total",
+            data: regDataArr
+          }]
+        });
+      }
+
+      /***** SLIDER PLUS/Minus FUNCTIONS *****/
+      function incrementMonth(type) {
+        const sliderId = type === "exam" ? "exam-month-slider" : "registration-month-slider";
+        const slider = document.getElementById(sliderId);
+        if (parseInt(slider.value) < 11) {
+          slider.value = parseInt(slider.value) + 1;
+          if (type === "exam") updateExamComparisonTable();
+          else updateRegistrationComparisonTable();
+        }
+      }
+      function decrementMonth(type) {
+        const sliderId = type === "exam" ? "exam-month-slider" : "registration-month-slider";
+        const slider = document.getElementById(sliderId);
+        if (parseInt(slider.value) > 0) {
+          slider.value = parseInt(slider.value) - 1;
+          if (type === "exam") updateExamComparisonTable();
+          else updateRegistrationComparisonTable();
+        }
+      }
+
+      /***** PINNING FUNCTIONS FOR YTD TABLES *****/
+      // updatePinRow updates the pin button and row class without reordering
+      function updatePinRow(type, school) {
+        let tableId = type === "exam" ? "exam-comparison-table" : "registration-comparison-table";
+        let row = document.querySelector(`#${tableId} tbody tr[data-school="${school}"]`);
+        if (row) {
+          let pinCell = row.cells[0];
+          let button = pinCell.querySelector("button");
+          let isPinned = (type === "exam") ? pinnedExamSchools.includes(school) : pinnedRegistrationSchools.includes(school);
+          if (isPinned) {
+            button.textContent = "✅";
+            row.classList.add("pinned-row");
+          } else {
+            button.textContent = "📌";
+            row.classList.remove("pinned-row");
+          }
+        }
+      }
+      // Modified togglePin to update only the affected row in place.
+      function togglePin(type, school) {
+        if (type === "exam") {
+          if (pinnedExamSchools.includes(school)) {
+            pinnedExamSchools = pinnedExamSchools.filter(s => s !== school);
+          } else {
+            pinnedExamSchools.push(school);
+          }
+          updatePinRow("exam", school);
+          updatePinAllButton("exam");
+        } else {
+          if (pinnedRegistrationSchools.includes(school)) {
+            pinnedRegistrationSchools = pinnedRegistrationSchools.filter(s => s !== school);
+          } else {
+            pinnedRegistrationSchools.push(school);
+          }
+          updatePinRow("registration", school);
+          updatePinAllButton("registration");
+        }
+      }
+      // Helper function to get all schools for the current month for a given type.
+      function getAllSchoolsForType(type) {
+        const sliderId = type === "exam" ? "exam-month-slider" : "registration-month-slider";
+        const slider = document.getElementById(sliderId);
+        const selectedMonthIndex = parseInt(slider.value);
+        const data = type === "exam" ? examData : registrationData;
+        let schoolsSet = new Set();
+        Object.keys(data).forEach(year => {
+          for (let m = 0; m <= selectedMonthIndex; m++) {
+            let monthName = monthOrder[m];
+            if (data[year] && data[year][monthName]) {
+              Object.keys(data[year][monthName]).forEach(school => schoolsSet.add(school));
+            }
+          }
+        });
+        // Include any already pinned schools.
+        const pinned = type === "exam" ? pinnedExamSchools : pinnedRegistrationSchools;
+        pinned.forEach(school => schoolsSet.add(school));
+        return Array.from(schoolsSet).sort();
+      }
+      // Modified togglePinAll to switch between pinning and unpinning:
+      function togglePinAll(type) {
+        if (type === "exam") {
+          if (pinnedExamSchools.length > 0) {
+            // Unpin all if any are pinned.
+            pinnedExamSchools = [];
+          } else {
+            let tableId = "exam-comparison-table";
+            let tbody = document.querySelector(`#${tableId} tbody`);
+            let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+            // Capture the current displayed order for pinned rows.
+            pinnedExamSchools = rows.map(row => row.getAttribute("data-school"));
+          }
+          let tableId = "exam-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          rows.forEach(row => {
+            let school = row.getAttribute("data-school");
+            updatePinRow("exam", school);
+          });
+          updatePinAllButton("exam");
+        } else {
+          if (pinnedRegistrationSchools.length > 0) {
+            pinnedRegistrationSchools = [];
+          } else {
+            let tableId = "registration-comparison-table";
+            let tbody = document.querySelector(`#${tableId} tbody`);
+            let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+            pinnedRegistrationSchools = rows.map(row => row.getAttribute("data-school"));
+          }
+          let tableId = "registration-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          rows.forEach(row => {
+            let school = row.getAttribute("data-school");
+            updatePinRow("registration", school);
+          });
+          updatePinAllButton("registration");
+        }
+      }
+      function updatePinAllButton(type) {
+        if (type === "exam") {
+          let tableId = "exam-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          let allSchools = rows.map(row => row.getAttribute("data-school"));
+          const btn = document.getElementById("togglePinExamButton");
+          if (pinnedExamSchools.length === allSchools.length && allSchools.length > 0) {
+            btn.textContent = "Unpin All";
+            btn.style.backgroundColor = "#ffcccc"; // Unpin All color
+            btn.style.border = "2px solid black";
+          } else {
+            btn.textContent = "Pin All";
+            btn.style.backgroundColor = "#ccffd9"; // Pin All color
+            btn.style.border = "2px solid black";
+          }
+        } else {
+          let tableId = "registration-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          let allSchools = rows.map(row => row.getAttribute("data-school"));
+          const btn = document.getElementById("togglePinRegistrationButton");
+          if (pinnedRegistrationSchools.length === allSchools.length && allSchools.length > 0) {
+            btn.textContent = "Unpin All";
+            btn.style.backgroundColor = "#ffcccc";
+            btn.style.border = "2px solid black";
+          } else {
+            btn.textContent = "Pin All";
+            btn.style.backgroundColor = "#ccffd9";
+            btn.style.border = "2px solid black";
+          }
+        }
+      }
+      function sortTableDashboardYTD(page, columnIndex) {
+        let tableId = page === "ytd-exam" ? "exam-comparison-table" : "registration-comparison-table";
+        const table = document.getElementById(tableId);
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+        // Separate rows into TOTAL, pinned, and unpinned
+        let totalRows = rows.filter(row => row.classList.contains("total-row"));
+        let pinnedRows = rows.filter(row => row.classList.contains("pinned-row"));
+        let unpinnedRows = rows.filter(row => !row.classList.contains("total-row") && !row.classList.contains("pinned-row"));
+        if (unpinnedRows.length === 0) return;
+        const isNumeric = !isNaN(unpinnedRows[0].cells[columnIndex].textContent.trim());
+        sortDirections[columnIndex] = !sortDirections[columnIndex];
+        const direction = sortDirections[columnIndex] ? 1 : -1;
+        unpinnedRows.sort((a, b) => {
+            const aText = a.cells[columnIndex].textContent.trim();
+            const bText = b.cells[columnIndex].textContent.trim();
+            if (isNumeric) {
+              return (parseFloat(aText) - parseFloat(bText)) * direction;
+            } else {
+              return aText.localeCompare(bText) * direction;
+            }
+        });
+        // Reassemble: TOTAL rows first, then pinned rows (unchanged), then sorted unpinned rows.
+        tbody.innerHTML = "";
+        totalRows.forEach(row => tbody.appendChild(row));
+        pinnedRows.forEach(row => tbody.appendChild(row));
+        unpinnedRows.forEach(row => tbody.appendChild(row));
+      }
+      function updateYearHeaders() {
+        // Placeholder for extra header updates if needed.
+      }
+      
+      /***** CHART PAGE FUNCTIONS USING HIGHCHARTS *****/
+      function populateChartSchoolOptions() {
+        if (!globalData) return;
+        const schools = [...new Set(globalData.map(item => item["SCHOOL"]))].sort();
+        const availableSelect = document.getElementById("available-schools");
+        availableSelect.innerHTML = "";
+        let totalOpt = document.createElement("option");
+        totalOpt.value = "TOTAL";
+        totalOpt.text = "TOTAL";
+        availableSelect.add(totalOpt);
+        schools.forEach(school => {
+          let opt = document.createElement("option");
+          opt.value = school;
+          opt.text = school;
+          availableSelect.add(opt);
+        });
+      }
+      function filterAvailableSchools() {
+        const searchText = document.getElementById("chart-available-search").value.toUpperCase();
+        const selectElem = document.getElementById("available-schools");
+        Array.from(selectElem.options).forEach(option => {
+          option.style.display = option.text.toUpperCase().includes(searchText) ? "" : "none";
+        });
+      }
+      function addSchool() {
+        const availableSelect = document.getElementById("available-schools");
+        const selectedSelect = document.getElementById("selected-schools");
+        Array.from(availableSelect.selectedOptions).forEach(option => {
+          if (!Array.from(selectedSelect.options).some(o => o.value === option.value)) {
+            let newOpt = document.createElement("option");
+            newOpt.value = option.value;
+            newOpt.text = option.text;
+            selectedSelect.add(newOpt);
+          }
+        });
+      }
+      function removeSchool() {
+        const selectedSelect = document.getElementById("selected-schools");
+        Array.from(selectedSelect.selectedOptions).forEach(option => {
+          selectedSelect.remove(option.index);
+        });
+      }
+      function getChartFilteredData() {
+        if (!globalData) return [];
+        let selectedExamTypes = Array.from(document.getElementById("chartExamTypeFilter").selectedOptions).map(opt => opt.value);
+        let selectedProviders = Array.from(document.getElementById("chartProviderFilter").selectedOptions).map(opt => opt.value);
+        let selectedPBCB = Array.from(document.getElementById("chartPBCBFilter").selectedOptions).map(opt => opt.value);
+        return globalData.filter(item => {
+          let examTypeMatch = selectedExamTypes.includes("ALL") || selectedExamTypes.includes(item["EXAM TYPE"]);
+          let providerMatch = selectedProviders.includes("ALL") || selectedProviders.includes(item["PROVIDER"]);
+          let pbcbMatch = selectedPBCB.includes("ALL") || selectedPBCB.includes(item["PB/CB"]);
+          return examTypeMatch && providerMatch && pbcbMatch;
+        });
+      }
+      function updateCharts() {
+        const metric = document.querySelector('input[name="chartMetric"]:checked').value;
+        let selectedSchools = Array.from(document.getElementById("selected-schools").options).map(opt => opt.value);
+        if (selectedSchools.length === 0) return;
+        if (selectedSchools.includes("TOTAL")) {
+          selectedSchools = ["TOTAL"];
+        }
+        let filteredData = getChartFilteredData();
+        let localExamData = {};
+        let localRegistrationData = {};
+        filteredData.forEach(entry => {
+          processEntry(entry, "EXAM YEAR", "EXAM MONTH", localExamData);
+          processEntry(entry, "REGISTRATION YEAR", "REGISTRATION MONTH", localRegistrationData);
+        });
+        let dataSource = metric === "Exam" ? localExamData : localRegistrationData;
+        let yearlyData = {};
+        Object.keys(dataSource).forEach(year => {
+          selectedSchools.forEach(school => {
+            let sum = 0;
+            if (dataSource[year]) {
+              if (school === "TOTAL") {
+                Object.keys(dataSource[year]).forEach(month => {
+                  sum += Object.values(dataSource[year][month]).reduce((a, b) => a + b, 0);
+                });
+              } else {
+                Object.keys(dataSource[year]).forEach(month => {
+                  if (dataSource[year][month][school]) {
+                    sum += dataSource[year][month][school];
+                  }
+                });
+              }
+            }
+            if (!yearlyData[school]) yearlyData[school] = {};
+            yearlyData[school][year] = sum;
+          });
+        });
+        let monthlyData = {};
+        Object.keys(dataSource).forEach(year => {
+          selectedSchools.forEach(school => {
+            if (!monthlyData[school]) monthlyData[school] = {};
+            monthlyData[school][year] = Array(12).fill(0);
+            for (let i = 0; i < 12; i++) {
+              let mName = monthOrder[i];
+              if (dataSource[year][mName]) {
+                if (school === "TOTAL") {
+                  monthlyData[school][year][i] = Object.values(dataSource[year][mName]).reduce((a, b) => a + b, 0);
+                } else if (dataSource[year][mName][school]) {
+                  monthlyData[school][year][i] = dataSource[year][mName][school];
+                }
+              }
+            }
+          });
+        });
+        let yearsForChart = Object.keys(dataSource).sort();
+        let barSeries = [];
+        selectedSchools.forEach(school => {
+          let data = yearsForChart.map(year => yearlyData[school][year] || 0);
+          barSeries.push({ name: school, data: data });
+        });
+        Highcharts.chart("chartYearlyContainer", {
+          chart: { type: "column" },
+          title: { text: metric + " - Yearly Totals" },
+          xAxis: { categories: yearsForChart, title: { text: "Year" } },
+          yAxis: { min: 0, title: { text: "Count" } },
+          plotOptions: { column: { dataLabels: { enabled: true } } },
+          series: barSeries
+        });
+        let lineSeries = [];
+        selectedSchools.forEach(school => {
+          Object.keys(monthlyData[school]).forEach(year => {
+            let data = monthlyData[school][year];
+            lineSeries.push({ name: school + " (" + year + ")", data: data, dataLabels: { enabled: true } });
+          });
+        });
+        Highcharts.chart("chartMonthlyContainer", {
+          chart: { type: "line" },
+          title: { text: metric + " - Monthly Data" },
+          xAxis: { categories: monthOrder, title: { text: "Month" } },
+          yAxis: { title: { text: "Count" } },
+          plotOptions: { line: { dataLabels: { enabled: true } } },
+          series: lineSeries
+        });
+        let cumulativeSeries = [];
+        lineSeries.forEach(series => {
+          let cumulative = [];
+          series.data.reduce((a, b, i) => (cumulative[i] = a + b, a + b), 0);
+          cumulativeSeries.push({ name: series.name, data: cumulative, dataLabels: { enabled: true } });
+        });
+        Highcharts.chart("chartCumulativeContainer", {
+          chart: { type: "line" },
+          title: { text: metric + " - Cumulative Monthly Totals" },
+          xAxis: { categories: monthOrder, title: { text: "Month" } },
+          yAxis: { title: { text: "Cumulative Count" } },
+          plotOptions: { line: { dataLabels: { enabled: true } } },
+          series: cumulativeSeries
+        });
+      }
+      
+      /***** CHARTS EXAMS PAGE FUNCTIONS *****/
+      function getChartExamsFilteredData() {
+        if (!globalData) return [];
+        let selectedExamTypes = Array.from(document.getElementById("chartExamTypeFilter_exams").selectedOptions).map(opt => opt.value);
+        let selectedProviders = Array.from(document.getElementById("chartProviderFilter_exams").selectedOptions).map(opt => opt.value);
+        let selectedPBCB = Array.from(document.getElementById("chartPBCBFilter_exams").selectedOptions).map(opt => opt.value);
+        return globalData.filter(item => {
+          let examTypeMatch = selectedExamTypes.includes("ALL") || selectedExamTypes.includes(item["EXAM TYPE"]);
+          let providerMatch = selectedProviders.includes("ALL") || selectedProviders.includes(item["PROVIDER"]);
+          let pbcbMatch = selectedPBCB.includes("ALL") || selectedPBCB.includes(item["PB/CB"]);
+          return examTypeMatch && providerMatch && pbcbMatch;
+        });
+      }
+      function updateChartsExams() {
+        let metric = document.querySelector('input[name="chartMetricExams"]:checked').value;
+        let filteredData = getChartExamsFilteredData();
+        let groupBy = document.getElementById("groupBySelect").value;
+        let localData = {};
+        filteredData.forEach(entry => {
+          let yearKey = metric === "Exam" ? "EXAM YEAR" : "REGISTRATION YEAR";
+          let monthKey = metric === "Exam" ? "EXAM MONTH" : "REGISTRATION MONTH";
+          let year = entry[yearKey];
+          let month = monthOrder[entry[monthKey] - 1];
+          let groupValue = entry[groupBy];
+          if (!localData[year]) localData[year] = {};
+          if (!localData[year][month]) localData[year][month] = {};
+          localData[year][month][groupValue] = (localData[year][month][groupValue] || 0) + 1;
+        });
+        let yearsForChart = Object.keys(localData).sort();
+        let groupsSet = new Set();
+        for (let year in localData) {
+          for (let month in localData[year]) {
+            for (let group in localData[year][month]) {
+              groupsSet.add(group);
+            }
+          }
+        }
+        let groups = Array.from(groupsSet).sort();
+        let yearlySeries = [];
+        groups.forEach(group => {
+          let data = yearsForChart.map(year => {
+            let total = 0;
+            if (localData[year]) {
+              for (let m in localData[year]) {
+                total += localData[year][m][group] || 0;
+              }
+            }
+            return total;
+          });
+          yearlySeries.push({ name: group, data: data });
+        });
+        Highcharts.chart("chartExamsYearlyContainer", {
+          chart: { type: "column" },
+          title: { text: metric + " - Yearly Totals (Grouped by " + groupBy + ")" },
+          xAxis: { categories: yearsForChart, title: { text: "Year" } },
+          yAxis: { min: 0, title: { text: "Count" } },
+          plotOptions: { column: { dataLabels: { enabled: true } } },
+          series: yearlySeries
+        });
+        let monthlySeries = [];
+        groups.forEach(group => {
+          for (let year of yearsForChart) {
+            let data = Array(12).fill(0);
+            for (let i = 0; i < 12; i++) {
+              let mName = monthOrder[i];
+              if (localData[year] && localData[year][mName] && localData[year][mName][group]) {
+                data[i] = localData[year][mName][group];
+              }
+            }
+            monthlySeries.push({ name: group + " (" + year + ")", data: data, dataLabels: { enabled: true } });
+          }
+        });
+        Highcharts.chart("chartExamsMonthlyContainer", {
+          chart: { type: "line" },
+          title: { text: metric + " - Monthly Data (Grouped by " + groupBy + ")" },
+          xAxis: { categories: monthOrder, title: { text: "Month" } },
+          yAxis: { title: { text: "Count" } },
+          plotOptions: { line: { dataLabels: { enabled: true } } },
+          series: monthlySeries
+        });
+        let cumulativeSeries = [];
+        monthlySeries.forEach(series => {
+          let cumulative = [];
+          series.data.reduce((a, b, i) => (cumulative[i] = a + b, a + b), 0);
+          cumulativeSeries.push({ name: series.name, data: cumulative, dataLabels: { enabled: true } });
+        });
+        Highcharts.chart("chartExamsCumulativeContainer", {
+          chart: { type: "line" },
+          title: { text: metric + " - Cumulative Monthly Totals (Grouped by " + groupBy + ")" },
+          xAxis: { categories: monthOrder, title: { text: "Month" } },
+          yAxis: { title: { text: "Cumulative Count" } },
+          plotOptions: { line: { dataLabels: { enabled: true } } },
+          series: cumulativeSeries
+        });
+      }
+      function applyChartExamsFilter() {
+        updateChartsExams();
+      }
+
+      /***** SLIDER PLUS/Minus FUNCTIONS *****/
+      function incrementMonth(type) {
+        const sliderId = type === "exam" ? "exam-month-slider" : "registration-month-slider";
+        const slider = document.getElementById(sliderId);
+        if (parseInt(slider.value) < 11) {
+          slider.value = parseInt(slider.value) + 1;
+          if (type === "exam") updateExamComparisonTable();
+          else updateRegistrationComparisonTable();
+        }
+      }
+      function decrementMonth(type) {
+        const sliderId = type === "exam" ? "exam-month-slider" : "registration-month-slider";
+        const slider = document.getElementById(sliderId);
+        if (parseInt(slider.value) > 0) {
+          slider.value = parseInt(slider.value) - 1;
+          if (type === "exam") updateExamComparisonTable();
+          else updateRegistrationComparisonTable();
+        }
+      }
+
+      /***** PINNING FUNCTIONS FOR YTD TABLES *****/
+      // updatePinRow updates the pin button and row class without reordering
+      function updatePinRow(type, school) {
+        let tableId = type === "exam" ? "exam-comparison-table" : "registration-comparison-table";
+        let row = document.querySelector(`#${tableId} tbody tr[data-school="${school}"]`);
+        if (row) {
+          let pinCell = row.cells[0];
+          let button = pinCell.querySelector("button");
+          let isPinned = (type === "exam") ? pinnedExamSchools.includes(school) : pinnedRegistrationSchools.includes(school);
+          if (isPinned) {
+            button.textContent = "✅";
+            row.classList.add("pinned-row");
+          } else {
+            button.textContent = "📌";
+            row.classList.remove("pinned-row");
+          }
+        }
+      }
+      // Modified togglePin to update only the affected row in place.
+      function togglePin(type, school) {
+        if (type === "exam") {
+          if (pinnedExamSchools.includes(school)) {
+            pinnedExamSchools = pinnedExamSchools.filter(s => s !== school);
+          } else {
+            pinnedExamSchools.push(school);
+          }
+          updatePinRow("exam", school);
+          updatePinAllButton("exam");
+        } else {
+          if (pinnedRegistrationSchools.includes(school)) {
+            pinnedRegistrationSchools = pinnedRegistrationSchools.filter(s => s !== school);
+          } else {
+            pinnedRegistrationSchools.push(school);
+          }
+          updatePinRow("registration", school);
+          updatePinAllButton("registration");
+        }
+      }
+      // Helper function to get all schools for the current month for a given type.
+      function getAllSchoolsForType(type) {
+        const sliderId = type === "exam" ? "exam-month-slider" : "registration-month-slider";
+        const slider = document.getElementById(sliderId);
+        const selectedMonthIndex = parseInt(slider.value);
+        const data = type === "exam" ? examData : registrationData;
+        let schoolsSet = new Set();
+        Object.keys(data).forEach(year => {
+          for (let m = 0; m <= selectedMonthIndex; m++) {
+            let monthName = monthOrder[m];
+            if (data[year] && data[year][monthName]) {
+              Object.keys(data[year][monthName]).forEach(school => schoolsSet.add(school));
+            }
+          }
+        });
+        // Include any already pinned schools.
+        const pinned = type === "exam" ? pinnedExamSchools : pinnedRegistrationSchools;
+        pinned.forEach(school => schoolsSet.add(school));
+        return Array.from(schoolsSet).sort();
+      }
+      // Modified togglePinAll to switch between pinning and unpinning:
+      function togglePinAll(type) {
+        if (type === "exam") {
+          if (pinnedExamSchools.length > 0) {
+            // Unpin all if any are pinned.
+            pinnedExamSchools = [];
+          } else {
+            let tableId = "exam-comparison-table";
+            let tbody = document.querySelector(`#${tableId} tbody`);
+            let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+            // Capture the current displayed order for pinned rows.
+            pinnedExamSchools = rows.map(row => row.getAttribute("data-school"));
+          }
+          let tableId = "exam-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          rows.forEach(row => {
+            let school = row.getAttribute("data-school");
+            updatePinRow("exam", school);
+          });
+          updatePinAllButton("exam");
+        } else {
+          if (pinnedRegistrationSchools.length > 0) {
+            pinnedRegistrationSchools = [];
+          } else {
+            let tableId = "registration-comparison-table";
+            let tbody = document.querySelector(`#${tableId} tbody`);
+            let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+            pinnedRegistrationSchools = rows.map(row => row.getAttribute("data-school"));
+          }
+          let tableId = "registration-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          rows.forEach(row => {
+            let school = row.getAttribute("data-school");
+            updatePinRow("registration", school);
+          });
+          updatePinAllButton("registration");
+        }
+      }
+      function updatePinAllButton(type) {
+        if (type === "exam") {
+          let tableId = "exam-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          let allSchools = rows.map(row => row.getAttribute("data-school"));
+          const btn = document.getElementById("togglePinExamButton");
+          if (pinnedExamSchools.length === allSchools.length && allSchools.length > 0) {
+            btn.textContent = "Unpin All";
+            btn.style.backgroundColor = "#ffcccc"; // Unpin All color
+            btn.style.border = "2px solid black";
+          } else {
+            btn.textContent = "Pin All";
+            btn.style.backgroundColor = "#ccffd9"; // Pin All color
+            btn.style.border = "2px solid black";
+          }
+        } else {
+          let tableId = "registration-comparison-table";
+          let tbody = document.querySelector(`#${tableId} tbody`);
+          let rows = Array.from(tbody.querySelectorAll("tr[data-school]"));
+          let allSchools = rows.map(row => row.getAttribute("data-school"));
+          const btn = document.getElementById("togglePinRegistrationButton");
+          if (pinnedRegistrationSchools.length === allSchools.length && allSchools.length > 0) {
+            btn.textContent = "Unpin All";
+            btn.style.backgroundColor = "#ffcccc";
+            btn.style.border = "2px solid black";
+          } else {
+            btn.textContent = "Pin All";
+            btn.style.backgroundColor = "#ccffd9";
+            btn.style.border = "2px solid black";
+          }
+        }
+      }
+      function sortTableDashboardYTD(page, columnIndex) {
+        let tableId = page === "ytd-exam" ? "exam-comparison-table" : "registration-comparison-table";
+        const table = document.getElementById(tableId);
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+        // Separate rows into TOTAL, pinned, and unpinned
+        let totalRows = rows.filter(row => row.classList.contains("total-row"));
+        let pinnedRows = rows.filter(row => row.classList.contains("pinned-row"));
+        let unpinnedRows = rows.filter(row => !row.classList.contains("total-row") && !row.classList.contains("pinned-row"));
+        if (unpinnedRows.length === 0) return;
+        const isNumeric = !isNaN(unpinnedRows[0].cells[columnIndex].textContent.trim());
+        sortDirections[columnIndex] = !sortDirections[columnIndex];
+        const direction = sortDirections[columnIndex] ? 1 : -1;
+        unpinnedRows.sort((a, b) => {
+            const aText = a.cells[columnIndex].textContent.trim();
+            const bText = b.cells[columnIndex].textContent.trim();
+            if (isNumeric) {
+              return (parseFloat(aText) - parseFloat(bText)) * direction;
+            } else {
+              return aText.localeCompare(bText) * direction;
+            }
+        });
+        // Reassemble: TOTAL rows first, then pinned rows (unchanged), then sorted unpinned rows.
+        tbody.innerHTML = "";
+        totalRows.forEach(row => tbody.appendChild(row));
+        pinnedRows.forEach(row => tbody.appendChild(row));
+        unpinnedRows.forEach(row => tbody.appendChild(row));
+      }
+      function updateYearHeaders() {
+        // Placeholder for extra header updates if needed.
+      }
+    </script>
+  </body>
+</html>
